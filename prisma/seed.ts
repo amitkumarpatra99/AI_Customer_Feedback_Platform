@@ -116,7 +116,7 @@ async function main() {
     const template = mockContents[i % mockContents.length];
     
     // Distribute statuses
-    let status = Status.NEW;
+    let status: Status = Status.NEW;
     if (i % 3 === 1) status = Status.REVIEWED;
     if (i % 3 === 2) status = Status.ACTIONED;
 
