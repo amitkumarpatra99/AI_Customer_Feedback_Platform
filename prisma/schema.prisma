@@ -1,10 +1,53 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+// prisma/schema.prisma
+// Project LOOP - AI Customer Feedback Intelligence Platform
 
 generator client {
   provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // <-- Ye line add karo
+}
+
+// ============================================
+// WORKSPACE (Multi-tenant company/organization)
+// ============================================
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  feedbacks Feedback[]
+  themes    Theme[]
+  reports   Report[]
+
+  @@map("workspaces")
+}
+
+// ============================================
+// USER (Team members with roles)
+// ============================================
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          Role     @default(VIEWER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  generatedReports Report[] @relation("ReportGenerator")
+
+  @@map("users")
 }
 
 enum Role {
@@ -13,10 +56,57 @@ enum Role {
   VIEWER
 }
 
+// ============================================
+// FEEDBACK (Customer feedback items)
+// ============================================
+model Feedback {
+  id             String     @id @default(cuid())
+  content        String     // The actual feedback text
+  channel        Channel    // Source: SUPPORT, APP_STORE, etc.
+  sourceRef      String?    // External reference (e.g., ticket ID)
+  customerLabel  String?    // e.g., "Enterprise", "Free Tier"
+  
+  // AI Classification
+  sentiment      Sentiment  @default(NEUTRAL)
+  sentimentScore Float      @default(0.0) // -1.0 to 1.0
+  featureArea    String?    // e.g., "Checkout", "Onboarding"
+  aiRationale    String?    // Why AI classified it this way
+  
+  // Workflow
+  status         Status     @default(NEW)
+  
+  // Timestamps
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  workspaceId    String
+  workspace      Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  themes         FeedbackTheme[]
+  embedding      Embedding?
+
+  // Indexes for fast filtering
+  @@index([workspaceId, status])
+  @@index([workspaceId, sentiment])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, channel])
+  @@map("feedbacks")
+}
+
+enum Channel {
+  SUPPORT_TICKET
+  APP_STORE
+  NPS_SURVEY
+  SALES_CALL
+  COMMUNITY
+  OTHER
+}
+
 enum Sentiment {
-  POS
-  NEU
-  NEG
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
 }
 
 enum Status {
@@ -25,81 +115,76 @@ enum Status {
   ACTIONED
 }
 
-model Workspace {
-  id        String     @id @default(cuid())
-  name      String
-  createdAt DateTime   @default(now())
-  users     User[]
-  feedback  Feedback[]
-  themes    Theme[]
-  reports   Report[]
-}
-
-model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  passwordHash String
-  role         Role       @default(VIEWER)
-  workspaceId  String
-  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  reports      Report[]
-  createdAt    DateTime   @default(now())
-}
-
-model Feedback {
-  id            String          @id @default(cuid())
-  content       String
-  channel       String          // e.g. "Support ticket", "App store review", etc.
-  sourceRef     String?
-  customerLabel String?
-  sentiment     Sentiment       @default(NEU)
-  sentimentScore Float          @default(0) // -1.0 to 1.0
-  status        Status          @default(NEW)
-  createdAt     DateTime        @default(now())
-  workspaceId   String
-  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  themes        FeedbackTheme[]
-  embedding     Embedding?
-}
-
+// ============================================
+// THEME (AI-discovered topics/categories)
+// ============================================
 model Theme {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  color       String          @default("#3b82f6")
+  color       String   @default("#6366f1") // Hex color for UI
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
   workspaceId String
-  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
   feedbacks   FeedbackTheme[]
+
+  @@unique([workspaceId, name]) // Same theme name can't exist twice in a workspace
+  @@map("themes")
 }
 
+// ============================================
+// FEEDBACK_THEME (Join table: Many-to-Many)
+// ============================================
 model FeedbackTheme {
   feedbackId String
-  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
   themeId    String
+  confidence Float    @default(1.0) // AI confidence score (0-1)
+  
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
   theme      Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
-  confidence Float    @default(1.0) // 0.0 to 1.0
 
   @@id([feedbackId, themeId])
+  @@map("feedback_themes")
 }
 
+// ============================================
+// EMBEDDING (For Ask LOOP semantic search)
+// ============================================
 model Embedding {
   id         String   @id @default(cuid())
   feedbackId String   @unique
+  vector     Unsupported("vector(1536)") // pgvector type for OpenAI/Claude embeddings
+  
   feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  // Float array to store the vector embeddings (or can use Unsupported("vector(1536)") if pgvector is enabled)
-  vector     Float[]
+
+  @@map("embeddings")
 }
 
+// ============================================
+// REPORT (Voice-of-Customer reports)
+// ============================================
 model Report {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   periodStart DateTime
   periodEnd   DateTime
-  contentJson String
-  createdAt   DateTime  @default(now())
+  contentJson Json     // AI-generated report content (structured)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  generatedBy String
-  user        User      @relation(fields: [generatedBy], references: [id], onDelete: Cascade)
+  
+  generatedById String
+  generatedBy   User    @relation("ReportGenerator", fields: [generatedById], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@map("reports")
 }
