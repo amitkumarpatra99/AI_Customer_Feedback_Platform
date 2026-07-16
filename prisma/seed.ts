@@ -1,175 +1,109 @@
-import { PrismaClient, Role, Sentiment, Status } from "@prisma/client";
+// prisma/seed.ts
+import { PrismaClient, Channel, Sentiment, Status, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const mockContents = [
-  // Support Tickets
-  { content: "Onboarding took forever — I couldn't figure out how to invite my team.", channel: "Support ticket", sentiment: Sentiment.NEG, score: -0.6 },
-  { content: "Billing page keeps timing out when I try to download an invoice.", channel: "Support ticket", sentiment: Sentiment.NEG, score: -0.7 },
-  { content: "How do I change my workspace password? The settings page isn't clear.", channel: "Support ticket", sentiment: Sentiment.NEU, score: 0.0 },
-  { content: "The CSV upload failed with a server error, no explanation provided.", channel: "Support ticket", sentiment: Sentiment.NEG, score: -0.5 },
-  { content: "Is there a way to export analytics charts to PNG or PDF format?", channel: "Support ticket", sentiment: Sentiment.NEU, score: 0.1 },
-
-  // App Store Reviews
-  { content: "The new dashboard is gorgeous and finally fast. Huge improvement.", channel: "App store review", sentiment: Sentiment.POS, score: 0.9 },
-  { content: "UI glitches on mobile, elements overlap and buttons are unclickable.", channel: "App store review", sentiment: Sentiment.NEG, score: -0.4 },
-  { content: "Simple, easy to use, and saves our team hours of review triage every week.", channel: "App store review", sentiment: Sentiment.POS, score: 0.8 },
-  { content: "Recent update broke the notification setting toggle.", channel: "App store review", sentiment: Sentiment.NEG, score: -0.3 },
-
-  // NPS Surveys
-  { content: "It does the job, but the mobile experience needs work.", channel: "NPS survey", sentiment: Sentiment.NEU, score: 0.1 },
-  { content: "Incredible tool. Having Claude classify our support tickets is a lifesaver.", channel: "NPS survey", sentiment: Sentiment.POS, score: 0.9 },
-  { content: "Too expensive for small teams with less than 50 feedback items a month.", channel: "NPS survey", sentiment: Sentiment.NEU, score: -0.2 },
-  { content: "Great support, helped us resolve our SSO configuration issue in minutes.", channel: "NPS survey", sentiment: Sentiment.POS, score: 0.8 },
-
-  // Sales Call Notes
-  { content: "Prospect wants SSO before they'll sign — third time this month.", channel: "Sales call note", sentiment: Sentiment.NEU, score: -0.1 },
-  { content: "Customer loved the theme trends analysis but requested Slack integration.", channel: "Sales call note", sentiment: Sentiment.POS, score: 0.7 },
-  { content: "Client is migrating away because they need real-time collaboration tools.", channel: "Sales call note", sentiment: Sentiment.NEG, score: -0.6 },
-  { content: "Feedback from pilot: UI loads slightly slow for users outside the US.", channel: "Sales call note", sentiment: Sentiment.NEU, score: -0.2 },
-
-  // Community Posts
-  { content: "Love the new export feature, saved me an hour today.", channel: "Community post", sentiment: Sentiment.POS, score: 0.9 },
-  { content: "Has anyone figured out how to filter reports by specific date ranges?", channel: "Community post", sentiment: Sentiment.NEU, score: 0.0 },
-  { content: "Classify on ingest has been working perfectly for us. Kudos to the team!", channel: "Community post", sentiment: Sentiment.POS, score: 0.8 },
-  { content: "Is anyone else experiencing slow loading times on the Trends tab?", channel: "Community post", sentiment: Sentiment.NEG, score: -0.3 }
+const feedbackTemplates = [
+  { content: "Onboarding took forever — I couldn’t figure out how to invite my team.", channel: Channel.SUPPORT_TICKET, theme: "Onboarding" },
+  { content: "The new dashboard is gorgeous and finally fast. Huge improvement.", channel: Channel.APP_STORE, theme: "UI/UX" },
+  { content: "It does the job, but the mobile experience needs work.", channel: Channel.NPS_SURVEY, theme: "Performance" },
+  { content: "Prospect wants SSO before they’ll sign — third time this month.", channel: Channel.SALES_CALL, theme: "Feature Request" },
+  { content: "Love the new export feature, saved me an hour today.", channel: Channel.COMMUNITY, theme: "Feature Request" },
+  { content: "Billing page keeps timing out when I try to download an invoice.", channel: Channel.SUPPORT_TICKET, theme: "Billing" },
+  { content: "Customer support was very helpful and resolved my issue quickly.", channel: Channel.SUPPORT_TICKET, theme: "Support" },
+  { content: "App crashes every time I try to upload a large file.", channel: Channel.APP_STORE, theme: "Performance" },
+  { content: "Would love to see a dark mode option in the settings.", channel: Channel.NPS_SURVEY, theme: "UI/UX" },
+  { content: "The pricing is a bit steep for small teams like ours.", channel: Channel.SALES_CALL, theme: "Billing" },
 ];
 
-async function main() {
-  console.log("Seeding database...");
+const sentiments: Sentiment[] = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE];
+const statuses: Status[] = [Status.NEW, Status.REVIEWED, Status.ACTIONED];
 
-  // 1. Clean database
+async function main() {
+  console.log('🌱 Starting seed process...');
+
+  // 1. Clean existing data
   await prisma.feedbackTheme.deleteMany();
-  await prisma.embedding.deleteMany();
   await prisma.feedback.deleteMany();
   await prisma.theme.deleteMany();
-  await prisma.report.deleteMany();
   await prisma.user.deleteMany();
   await prisma.workspace.deleteMany();
+  console.log('🧹 Cleared existing data.');
 
-  // 2. Create demo Workspace
+  // 2. Create Workspace
   const workspace = await prisma.workspace.create({
-    data: {
-      name: "Acme Corp"
-    }
+    data: { name: 'Acme Corp Demo' },
   });
+  console.log(`✅ Created Workspace: ${workspace.name}`);
 
-  // 3. Create demo Users
-  const admin = await prisma.user.create({
-    data: {
-      name: "Alice Admin",
-      email: "admin@loop.com",
-      passwordHash: "Password123", // Default text check for stub, will be hashed in Week 1 Day 3
-      role: Role.ADMIN,
-      workspaceId: workspace.id
-    }
+  // 3. Create 3 Users
+  await prisma.user.create({
+    data: { name: 'Rahul Admin', email: 'admin@acme.com', passwordHash: 'hashed_password_123', role: Role.ADMIN, workspaceId: workspace.id },
   });
-
-  const analyst = await prisma.user.create({
-    data: {
-      name: "Bob Analyst",
-      email: "analyst@loop.com",
-      passwordHash: "Password123",
-      role: Role.ANALYST,
-      workspaceId: workspace.id
-    }
+  await prisma.user.create({
+    data: { name: 'Priya Analyst', email: 'analyst@acme.com', passwordHash: 'hashed_password_123', role: Role.ANALYST, workspaceId: workspace.id },
   });
-
-  const viewer = await prisma.user.create({
-    data: {
-      name: "Charlie Viewer",
-      email: "viewer@loop.com",
-      passwordHash: "Password123",
-      role: Role.VIEWER,
-      workspaceId: workspace.id
-    }
+  await prisma.user.create({
+    data: { name: 'Amit Viewer', email: 'viewer@acme.com', passwordHash: 'hashed_password_123', role: Role.VIEWER, workspaceId: workspace.id },
   });
+  console.log('✅ Created 3 Users (Admin, Analyst, Viewer)');
 
   // 4. Create Themes
-  const themeBilling = await prisma.theme.create({
-    data: { name: "Billing & Invoices", description: "Pricing, bills, and invoice downloads", color: "#ef4444", workspaceId: workspace.id }
-  });
-
-  const themeOnboarding = await prisma.theme.create({
-    data: { name: "Onboarding & Signup", description: "First-run experience and onboarding flows", color: "#3b82f6", workspaceId: workspace.id }
-  });
-
-  const themePerformance = await prisma.theme.create({
-    data: { name: "Performance & Latency", description: "Dashboard speed and response times", color: "#10b981", workspaceId: workspace.id }
-  });
-
-  const themeBugs = await prisma.theme.create({
-    data: { name: "Bugs & UI Issues", description: "Visual glitches and unexpected crashes", color: "#f59e0b", workspaceId: workspace.id }
-  });
-
-  const themeFeatureRequests = await prisma.theme.create({
-    data: { name: "Feature Requests", description: "Slack integration, PDF exports, and SSO requests", color: "#8b5cf6", workspaceId: workspace.id }
-  });
-
-  const themes = [themeBilling, themeOnboarding, themePerformance, themeBugs, themeFeatureRequests];
-
-  // 5. Generate 120+ Feedback items
-  console.log("Generating 120+ feedback items...");
-  const feedbackData: any[] = [];
+  const themeNames = ['Billing', 'Onboarding', 'UI/UX', 'Performance', 'Feature Request', 'Support'];
+  const createdThemes: Record<string, any> = {};
   
+  for (const name of themeNames) {
+    const theme = await prisma.theme.create({
+      data: { name, description: `Feedback related to ${name}`, color: '#6366f1', workspaceId: workspace.id },
+    });
+    createdThemes[name] = theme;
+  }
+  console.log(`✅ Created ${themeNames.length} Themes`);
+
+  // 5. Prepare 125 Feedbacks Data
+  const feedbacksToCreate = [];
   for (let i = 0; i < 125; i++) {
-    const template = mockContents[i % mockContents.length];
+    const template = feedbackTemplates[i % feedbackTemplates.length];
+    const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    const randomScore = randomSentiment === Sentiment.POSITIVE ? 0.8 : randomSentiment === Sentiment.NEGATIVE ? -0.7 : 0.0;
     
-    // Distribute statuses
-    let status: Status = Status.NEW;
-    if (i % 3 === 1) status = Status.REVIEWED;
-    if (i % 3 === 2) status = Status.ACTIONED;
+    const daysAgo = Math.floor(Math.random() * 30);
+    const createdAt = new Date();
+    createdAt.setDate(createdAt.getDate() - daysAgo);
 
-    // Distribute date range over last 30 days
-    const createdDate = new Date();
-    createdDate.setDate(createdDate.getDate() - (i % 30));
-
-    feedbackData.push({
-      content: `${template.content} (Ref: #${i + 1})`,
+    feedbacksToCreate.push({
+      content: template.content + ` (Variation #${i})`,
       channel: template.channel,
-      sentiment: template.sentiment,
-      sentimentScore: template.score,
-      status: status,
+      sentiment: randomSentiment,
+      sentimentScore: randomScore,
+      status: randomStatus,
       workspaceId: workspace.id,
-      createdAt: createdDate
+      createdAt: createdAt,
+      themes: {
+        create: {
+          themeId: createdThemes[template.theme].id,
+          confidence: 0.95,
+        },
+      },
     });
   }
 
-  // Create feedback items in bulk/sequence
-  for (let idx = 0; idx < feedbackData.length; idx++) {
-    const fb = await prisma.feedback.create({
-      data: feedbackData[idx]
-    });
-
-    // Randomly link 1-2 themes to each feedback
-    const themeCount = (idx % 2) + 1; // 1 or 2 themes
-    const selectedThemes = [...themes].sort(() => 0.5 - Math.random()).slice(0, themeCount);
-
-    for (const t of selectedThemes) {
-      await prisma.feedbackTheme.create({
-        data: {
-          feedbackId: fb.id,
-          themeId: t.id,
-          confidence: Math.random() * 0.4 + 0.6 // 0.6 to 1.0
-        }
-      });
-    }
-
-    // Seed mock embeddings
-    await prisma.embedding.create({
-      data: {
-        feedbackId: fb.id,
-        vector: Array.from({ length: 1536 }, () => Math.random() - 0.5)
-      }
-    });
+  // 🛠️ FIX: Insert in batches of 10 to prevent Neon connection drops/timeouts
+  console.log('⏳ Inserting 125 feedbacks in safe batches...');
+  const batchSize = 10;
+  for (let i = 0; i < feedbacksToCreate.length; i += batchSize) {
+    const batch = feedbacksToCreate.slice(i, i + batchSize);
+    await Promise.all(batch.map(data => prisma.feedback.create({ data })));
+    console.log(`   ✅ Inserted ${Math.min(i + batchSize, feedbacksToCreate.length)} / ${feedbacksToCreate.length} feedbacks`);
   }
 
-  console.log("Seeding completed successfully!");
+  console.log('🎉 Seed process completed successfully!');
 }
 
 main()
   .catch((e) => {
-    console.error("Error during seeding:", e);
+    console.error('❌ Seed process failed:', e);
     process.exit(1);
   })
   .finally(async () => {
