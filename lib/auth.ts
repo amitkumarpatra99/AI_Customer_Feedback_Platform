@@ -17,14 +17,13 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Database se user dhundo
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: { workspace: true },
         });
 
-        // Demo ke liye hum seeded password "hashed_password_123" check kar rahe hain
-        if (user && user.passwordHash === "hashed_password_123") {
+        // ✅ FIX: Ab ye check karega ki entered password, stored password se match karta hai ya nahi
+        if (user && user.passwordHash === credentials.password) {
           return {
             id: user.id,
             name: user.name,
@@ -35,13 +34,11 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        return null; // Galat password hone par null return karega
+        return null; // Agar password match nahi kiya, toh login fail
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -62,9 +59,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  pages: {
-    signIn: "/login", // Custom login page
-  },
+  pages: { signIn: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
 };
 
