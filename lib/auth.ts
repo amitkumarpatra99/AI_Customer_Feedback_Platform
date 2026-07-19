@@ -1,6 +1,8 @@
-import { NextAuthOptions, getServerSession } from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import prisma from "./db";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -8,7 +10,7 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -17,33 +19,30 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { workspace: true }
+          include: { workspace: true },
         });
 
-        if (!user) {
-          return null;
+        // ✅ FIX: Ab ye check karega ki entered password, stored password se match karta hai ya nahi
+        if (user && user.passwordHash === credentials.password) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            workspaceId: user.workspaceId,
+            workspaceName: user.workspace.name,
+          };
         }
 
-        // TODO: Validate password (to be implemented with hashing on Day 3)
-        // For now, allow seed password or basic check
-        if (credentials.password !== "Password123" && user.passwordHash !== credentials.password) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          workspaceId: user.workspaceId,
-          workspaceName: user.workspace.name
-        };
-      }
-    })
+        return null; // Agar password match nahi kiya, toh login fail
+      },
+    }),
   ],
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.workspaceId = user.workspaceId;
         token.workspaceName = user.workspaceName;
@@ -52,61 +51,16 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub || "";
-        session.user.role = token.role;
-        session.user.workspaceId = token.workspaceId;
-        session.user.workspaceName = token.workspaceName;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.workspaceId = token.workspaceId as string;
+        session.user.workspaceName = token.workspaceName as string;
       }
       return session;
-    }
+    },
   },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  }
+  pages: { signIn: "/login" },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
-export async function getSession() {
-  return await getServerSession(authOptions);
-}
-
-export async function requireAuth() {
-  const session = await getSession();
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
-  return session;
-}
-
-export function hasRole(session: any, allowedRoles: string[]) {
-  return allowedRoles.includes(session.user.role);
-}
-
-// Extend next-auth types
-declare module "next-auth" {
-  interface User {
-    role: "ADMIN" | "ANALYST" | "VIEWER";
-    workspaceId: string;
-    workspaceName: string;
-  }
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      role: "ADMIN" | "ANALYST" | "VIEWER";
-      workspaceId: string;
-      workspaceName: string;
-    }
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    role: "ADMIN" | "ANALYST" | "VIEWER";
-    workspaceId: string;
-    workspaceName: string;
-  }
-}
+export const handler = NextAuth(authOptions);
