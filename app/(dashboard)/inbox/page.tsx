@@ -1,164 +1,8 @@
-// "use client";
-
-// import React, { useState } from "react";
-// import { Search, Filter, RefreshCw, Plus } from "lucide-react";
-
-// export default function InboxPage() {
-//   const [searchQuery, setSearchQuery] = useState("");
-//   const [statusFilter, setStatusFilter] = useState("ALL");
-//   const [sentimentFilter, setSentimentFilter] = useState("ALL");
-
-//   const mockFeedback = [
-//     {
-//       id: "1",
-//       content: "The sign up flow gets stuck on verification. Had to refresh three times.",
-//       channel: "Support ticket",
-//       sentiment: "NEG",
-//       status: "NEW",
-//       createdAt: "2026-07-12T14:32:00Z",
-//       themes: ["Onboarding", "Bugs"]
-//     },
-//     {
-//       id: "2",
-//       content: "Excellent performance, dashboard loads super fast now! Love the new UI.",
-//       channel: "App store review",
-//       sentiment: "POS",
-//       status: "REVIEWED",
-//       createdAt: "2026-07-12T10:15:00Z",
-//       themes: ["Performance", "UX/UI"]
-//     },
-//     {
-//       id: "3",
-//       content: "SSO support is essential for our security compliance. Do you have a timeline?",
-//       channel: "Sales call note",
-//       sentiment: "NEU",
-//       status: "ACTIONED",
-//       createdAt: "2026-07-11T16:45:00Z",
-//       themes: ["Feature Requests", "SSO"]
-//     }
-//   ];
-
-//   return (
-//     <div className="space-y-6">
-//       {/* Search and Filters Bar */}
-//       <div className="flex flex-col md:flex-row gap-4 justify-between bg-zinc-900 p-4 rounded-lg border border-zinc-800">
-//         <div className="relative flex-1">
-//           <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-//           <input
-//             type="text"
-//             placeholder="Search feedback..."
-//             value={searchQuery}
-//             onChange={(e) => setSearchQuery(e.target.value)}
-//             className="w-full bg-zinc-950 border border-zinc-800 rounded-md pl-10 pr-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-//           />
-//         </div>
-//         <div className="flex flex-wrap gap-3">
-//           <select
-//             value={statusFilter}
-//             onChange={(e) => setStatusFilter(e.target.value)}
-//             className="bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-blue-500"
-//           >
-//             <option value="ALL">All Statuses</option>
-//             <option value="NEW">New</option>
-//             <option value="REVIEWED">Reviewed</option>
-//             <option value="ACTIONED">Actioned</option>
-//           </select>
-
-//           <select
-//             value={sentimentFilter}
-//             onChange={(e) => setSentimentFilter(e.target.value)}
-//             className="bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-blue-500"
-//           >
-//             <option value="ALL">All Sentiments</option>
-//             <option value="POS">Positive</option>
-//             <option value="NEU">Neutral</option>
-//             <option value="NEG">Negative</option>
-//           </select>
-
-//           <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-750 text-white text-sm px-4 py-2 rounded-md font-medium transition-all">
-//             <Plus className="w-4 h-4" /> Add Feedback
-//           </button>
-//         </div>
-//       </div>
-
-//       {/* Feedback List Table */}
-//       <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-//         <table className="w-full text-left border-collapse">
-//           <thead>
-//             <tr className="border-b border-zinc-800 bg-zinc-900/50 text-zinc-400 text-xs font-semibold uppercase tracking-wider">
-//               <th className="px-6 py-4">Feedback Content</th>
-//               <th className="px-6 py-4">Channel</th>
-//               <th className="px-6 py-4">Sentiment</th>
-//               <th className="px-6 py-4">Themes</th>
-//               <th className="px-6 py-4">Status</th>
-//               <th className="px-6 py-4 text-right">Actions</th>
-//             </tr>
-//           </thead>
-//           <tbody className="divide-y divide-zinc-800 text-sm text-zinc-350">
-//             {mockFeedback.map((item) => (
-//               <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
-//                 <td className="px-6 py-4 max-w-lg font-medium text-white truncate-2-lines">
-//                   {item.content}
-//                 </td>
-//                 <td className="px-6 py-4 whitespace-nowrap text-zinc-400">
-//                   {item.channel}
-//                 </td>
-//                 <td className="px-6 py-4 whitespace-nowrap">
-//                   <span
-//                     className={`inline-flex px-2 py-1 rounded text-xs font-semibold ${
-//                       item.sentiment === "POS"
-//                         ? "bg-green-500/10 text-green-400 border border-green-500/20"
-//                         : item.sentiment === "NEG"
-//                         ? "bg-red-500/10 text-red-400 border border-red-500/20"
-//                         : "bg-zinc-550/10 text-zinc-400 border border-zinc-500/20"
-//                     }`}
-//                   >
-//                     {item.sentiment}
-//                   </span>
-//                 </td>
-//                 <td className="px-6 py-4">
-//                   <div className="flex flex-wrap gap-1.5">
-//                     {item.themes.map((t) => (
-//                       <span
-//                         key={t}
-//                         className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-350"
-//                       >
-//                         {t}
-//                       </span>
-//                     ))}
-//                   </div>
-//                 </td>
-//                 <td className="px-6 py-4 whitespace-nowrap">
-//                   <select
-//                     defaultValue={item.status}
-//                     className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-blue-500"
-//                   >
-//                     <option value="NEW">NEW</option>
-//                     <option value="REVIEWED">REVIEWED</option>
-//                     <option value="ACTIONED">ACTIONED</option>
-//                   </select>
-//                 </td>
-//                 <td className="px-6 py-4 text-right whitespace-nowrap">
-//                   <button className="text-blue-500 hover:text-blue-400 text-xs font-semibold flex items-center gap-1 ml-auto">
-//                     <RefreshCw className="w-3.5 h-3.5" /> Re-classify
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Filter, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Search, Plus, X, Loader2 } from "lucide-react";
 
 interface Feedback {
   id: string;
@@ -171,14 +15,21 @@ interface Feedback {
 }
 
 export default function InboxPage() {
+  const { data: session } = useSession(); // User ka role check karne ke liye
+  
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ search: "", sentiment: "ALL", status: "ALL" });
+  
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Page load hone par data fetch karo
   useEffect(() => {
     fetchFeedbacks();
-  }, [filters]); // Jab filters change honge, data dobara fetch hoga
+  }, [filters]);
 
   const fetchFeedbacks = async () => {
     setIsLoading(true);
@@ -201,6 +52,32 @@ export default function InboxPage() {
     }
   };
 
+  // Manual Add Feedback Handler
+  const handleAddFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        setIsModalOpen(false);
+        setFormData({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
+        fetchFeedbacks(); // List refresh karo
+      } else {
+        alert("Failed to add feedback");
+      }
+    } catch (error) {
+      console.error("Error adding feedback", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     if (status === "NEW") return "bg-blue-500/10 text-blue-500 border-blue-500/20";
     if (status === "REVIEWED") return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
@@ -213,11 +90,67 @@ export default function InboxPage() {
     return "text-zinc-400";
   };
 
+  // Check if user is Viewer (Viewer cannot add or import feedback)
+  const isViewer = session?.user?.role === "VIEWER";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Feedback Inbox</h1>
-        <p className="text-sm text-zinc-400">Manage and review customer feedback.</p>
+      {/* Header & Action Buttons */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Feedback Inbox</h1>
+          <p className="text-sm text-zinc-400">Manage and review customer feedback.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          {/* CSV Import Button (Sirf Admin/Analyst ke liye) */}
+          {!isViewer && (
+            <>
+              <input
+                type="file"
+                id="csv-upload"
+                accept=".csv"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  
+                  const res = await fetch("/api/feedback/import", {
+                    method: "POST",
+                    body: formData,
+                  });
+                  
+                  if (res.ok) {
+                    const data = await res.json();
+                    alert(data.message);
+                    fetchFeedbacks(); // List refresh karo
+                  } else {
+                    alert("Failed to import CSV");
+                  }
+                }}
+              />
+              <label
+                htmlFor="csv-upload"
+                className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+              >
+                📥 Import CSV
+              </label>
+            </>
+          )}
+
+          {/* Manual Add Button (Sirf Admin/Analyst ke liye) */}
+          {!isViewer && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Add Feedback
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters Section */}
@@ -293,7 +226,7 @@ export default function InboxPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
-                        {feedback.themes.slice(0, 2).map((theme, i) => (
+                        {feedback.themes && feedback.themes.slice(0, 2).map((theme, i) => (
                           <span key={i} className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
                             {theme}
                           </span>
@@ -311,6 +244,78 @@ export default function InboxPage() {
           </div>
         )}
       </div>
+
+      {/* Add Feedback Modal (Popup) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Add New Feedback</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddFeedback} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-1">Feedback Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="e.g., The app crashes when I try to upload a photo..."
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Channel</label>
+                  <select
+                    value={formData.channel}
+                    onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="SUPPORT_TICKET">Support Ticket</option>
+                    <option value="APP_STORE">App Store</option>
+                    <option value="NPS_SURVEY">NPS Survey</option>
+                    <option value="SALES_CALL">Sales Call</option>
+                    <option value="COMMUNITY">Community</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">Customer Label (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Enterprise"
+                    value={formData.customerLabel}
+                    onChange={(e) => setFormData({ ...formData, customerLabel: e.target.value })}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="rounded-md border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Processing..." : "Add Feedback"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

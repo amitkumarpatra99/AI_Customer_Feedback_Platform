@@ -106,43 +106,39 @@
 // }
 
 
-
-
-
+// app/(dashboard)/layout.tsx
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import ClientProvider from "@/components/ClientProvider"; // 👈 Ye import add karo
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Server side par session fetch karo
   const session = await getServerSession(authOptions);
 
-  // 2. Agar user login nahi hai, toh Login page par redirect karo
   if (!session) {
     redirect("/login");
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-      {/* Sidebar (Role ke hisaab se links dikhayega) */}
-      <Sidebar userRole={session.user.role} userName={session.user.name} />
-      
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top Navbar (User profile aur Logout) */}
-        <Navbar userName={session.user.name} userEmail={session.user.email} />
+    // 👇 Pure dashboard ko SessionProvider se wrap kar do
+    <ClientProvider>
+      <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
+        <Sidebar userRole={session.user.role} userName={session.user.name} />
         
-        {/* Page Content (Dashboard, Inbox, etc.) */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          {children}
-        </main>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Navbar userName={session.user.name} userEmail={session.user.email} />
+          
+          <main className="flex-1 overflow-y-auto p-6 md:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ClientProvider>
   );
 }
