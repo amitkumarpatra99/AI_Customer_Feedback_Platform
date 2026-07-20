@@ -128,11 +128,16 @@ export default async function DashboardLayout({
   return (
     // 👇 Pure dashboard ko SessionProvider se wrap kar do
     <ClientProvider>
-      <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
-        <Sidebar userRole={session.user.role} userName={session.user.name} />
+      <div className="relative flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
+        {/* Background Ambient Glow Orbs for Glass Reflection */}
+        <div className="pointer-events-none fixed top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[120px]" />
+        <div className="pointer-events-none fixed bottom-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[120px]" />
+        <div className="pointer-events-none fixed top-[40%] left-[40%] h-[350px] w-[350px] rounded-full bg-violet-600/5 blur-[100px]" />
         
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Navbar userName={session.user.name} userEmail={session.user.email} />
+        <Sidebar userRole={session.user.role} userName={session.user.name ?? null} />
+        
+        <div className="flex flex-1 flex-col overflow-hidden relative z-10">
+          <Navbar userName={session.user.name ?? null} userEmail={session.user.email ?? null} />
           
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
             {children}
