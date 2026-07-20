@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Sentiment, Status } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -20,7 +20,7 @@ export async function GET() {
     // 1. Basic Stats
     const totalFeedbacks = await prisma.feedback.count({ where: { workspaceId } });
     const negativeFeedbacks = await prisma.feedback.count({ 
-      where: { workspaceId, sentiment: "NEGATIVE" } 
+      where: { workspaceId, sentiment: Sentiment.NEGATIVE } 
     });
     const newThisWeek = await prisma.feedback.count({
       where: { 
@@ -29,7 +29,7 @@ export async function GET() {
       }
     });
     const actionedFeedbacks = await prisma.feedback.count({
-      where: { workspaceId, status: "ACTIONED" }
+      where: { workspaceId, status: Status.ACTIONED }
     });
     const actionRate = totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
 

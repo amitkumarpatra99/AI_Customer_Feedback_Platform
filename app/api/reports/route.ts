@@ -62,9 +62,9 @@ export async function POST(req: Request) {
     });
 
     const totalItems = feedbacks.length;
-    const positive = feedbacks.filter(f => f.sentiment === "POS").length;
-    const neutral = feedbacks.filter(f => f.sentiment === "NEU").length;
-    const negative = feedbacks.filter(f => f.sentiment === "NEG").length;
+    const positive = feedbacks.filter(f => f.sentiment === "POSITIVE").length;
+    const neutral = feedbacks.filter(f => f.sentiment === "NEUTRAL").length;
+    const negative = feedbacks.filter(f => f.sentiment === "NEGATIVE").length;
 
     // Get mock themes and representative quotes for the stub
     const reportNarrative = await generateVoCReport(title, {
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
           }
         }),
         workspaceId: session.user.workspaceId,
-        generatedBy: session.user.id
+        generatedById: session.user.id
       }
     });
 
