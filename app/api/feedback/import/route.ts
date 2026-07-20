@@ -37,19 +37,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CSV file is empty" }, { status: 400 });
     }
 
+    // Valid Prisma Enum channels
+    const validChannels = ["SUPPORT_TICKET", "APP_STORE", "NPS_SURVEY", "SALES_CALL", "COMMUNITY", "OTHER"];
+
     // 3. Har row ko process karo aur AI sentiment lagao
     const feedbacksToCreate = rows.map(row => {
-      const content = row.content || row.feedback || row.text; // Flexible column names
-      const channel = row.channel || "OTHER";
+      const content = row.content || row.feedback || row.text || "No content provided";
+      
+      // 🛡️ SAFE CHANNEL MAPPING: Spaces ko '_' mein badlo, aur fallback 'OTHER' rakho
+      let rawChannel = row.channel ? String(row.channel).toUpperCase().replace(/\s+/g, "_") : "OTHER";
+      const safeChannel = validChannels.includes(rawChannel) ? rawChannel : "OTHER";
+      
       const customerLabel = row.customerLabel || row.customer || "Unknown";
 
       // Simple AI Logic
-      const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible"];
+      const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible", "frustrating", "confusing"];
       const isNegative = negativeWords.some(word => content.toLowerCase().includes(word));
       
       return {
         content: content,
-        channel: channel.toUpperCase(),
+        channel: safeChannel, // ✅ Ab ye 100% Prisma enum se match karega
         customerLabel: customerLabel,
         sentiment: isNegative ? "NEGATIVE" : "POSITIVE",
         sentimentScore: isNegative ? -0.8 : 0.8,
