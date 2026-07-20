@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Sentiment, Channel, Status } from "@prisma/client";
 import Papa from "papaparse";
 
 const prisma = new PrismaClient();
@@ -40,20 +40,24 @@ export async function POST(request: Request) {
     // 3. Har row ko process karo aur AI sentiment lagao
     const feedbacksToCreate = rows.map(row => {
       const content = row.content || row.feedback || row.text; // Flexible column names
-      const channel = row.channel || "OTHER";
+      const rawChannel = (row.channel || "OTHER").toUpperCase();
       const customerLabel = row.customerLabel || row.customer || "Unknown";
 
       // Simple AI Logic
       const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible"];
       const isNegative = negativeWords.some(word => content.toLowerCase().includes(word));
-      
+
+      const validChannel = Object.values(Channel).includes(rawChannel as Channel) 
+        ? (rawChannel as Channel) 
+        : Channel.OTHER;
+
       return {
         content: content,
-        channel: channel.toUpperCase(),
+        channel: validChannel,
         customerLabel: customerLabel,
-        sentiment: isNegative ? "NEGATIVE" : "POSITIVE",
+        sentiment: isNegative ? Sentiment.NEGATIVE : Sentiment.POSITIVE,
         sentimentScore: isNegative ? -0.8 : 0.8,
-        status: "NEW",
+        status: Status.NEW,
         workspaceId: session.user.workspaceId,
       };
     });

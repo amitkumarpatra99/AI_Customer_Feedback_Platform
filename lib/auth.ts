@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 
@@ -62,5 +62,9 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+export async function getSession() {
+  return await getServerSession(authOptions);
+}
 
 export const handler = NextAuth(authOptions);

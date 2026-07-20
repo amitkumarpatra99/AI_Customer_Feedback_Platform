@@ -49,34 +49,38 @@ export default function DashboardPage() {
   if (!data) return <div className="text-red-500">Failed to load data.</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Analytics Dashboard</h1>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">Analytics Dashboard</h1>
         <p className="text-sm text-zinc-400">Overview of your customer feedback intelligence.</p>
       </div>
 
       {/* 1. Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Feedbacks" 
           value={data.stats.totalFeedbacks} 
-          icon={<MessageSquare className="h-5 w-5 text-blue-500" />} 
+          icon={<MessageSquare className="h-5 w-5 text-blue-400" />} 
+          glowColor="from-blue-500/20 to-blue-600/5"
         />
         <StatCard 
           title="Negative Feedbacks" 
           value={data.stats.negativeFeedbacks} 
           subValue={`${data.stats.totalFeedbacks > 0 ? Math.round((data.stats.negativeFeedbacks / data.stats.totalFeedbacks) * 100) : 0}% of total`}
-          icon={<TrendingDown className="h-5 w-5 text-red-500" />} 
+          icon={<TrendingDown className="h-5 w-5 text-rose-400" />} 
+          glowColor="from-rose-500/20 to-rose-600/5"
         />
         <StatCard 
           title="New This Week" 
           value={data.stats.newThisWeek} 
-          icon={<Clock className="h-5 w-5 text-yellow-500" />} 
+          icon={<Clock className="h-5 w-5 text-amber-400" />} 
+          glowColor="from-amber-500/20 to-amber-600/5"
         />
         <StatCard 
           title="Action Rate" 
           value={`${data.stats.actionRate}%`} 
-          icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} 
+          icon={<CheckCircle2 className="h-5 w-5 text-emerald-400" />} 
+          glowColor="from-emerald-500/20 to-emerald-600/5"
         />
       </div>
 
@@ -84,26 +88,32 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         
         {/* Volume Over Time Chart */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Feedback Volume (Last 30 Days)</h3>
+        <div className="glass-card rounded-2xl p-6 relative overflow-hidden">
+          <h3 className="mb-4 text-sm font-bold text-zinc-200 tracking-wide">Feedback Volume (Last 30 Days)</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.volume}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                <YAxis stroke="#71717a" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="date" stroke="#a1a1aa" fontSize={12} tickLine={false} />
+                <YAxis stroke="#a1a1aa" fontSize={12} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(18, 18, 24, 0.85)", 
+                    backdropFilter: "blur(12px)", 
+                    borderColor: "rgba(255,255,255,0.15)", 
+                    borderRadius: "12px", 
+                    color: "#ffffff" 
+                  }} 
                 />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#60a5fa" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Sentiment Breakdown Chart */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Sentiment Breakdown</h3>
+        <div className="glass-card rounded-2xl p-6 relative overflow-hidden">
+          <h3 className="mb-4 text-sm font-bold text-zinc-200 tracking-wide">Sentiment Breakdown</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -113,22 +123,30 @@ export default function DashboardPage() {
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={5}
+                  paddingAngle={6}
                   dataKey="value"
                 >
                   {data.sentiment.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS] || "#a1a1aa"} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(18, 18, 24, 0.85)", 
+                    backdropFilter: "blur(12px)", 
+                    borderColor: "rgba(255,255,255,0.15)", 
+                    borderRadius: "12px", 
+                    color: "#ffffff" 
+                  }} 
+                />
               </PieChart>
             </ResponsiveContainer>
             {/* Custom Legend */}
-            <div className="mt-4 flex justify-center gap-4 text-xs">
+            <div className="mt-4 flex justify-center gap-4 text-xs font-medium">
               {data.sentiment.map((s) => (
-                <div key={s.name} className="flex items-center gap-1.5">
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[s.name as keyof typeof COLORS] || "#a1a1aa" }} />
-                  <span className="text-zinc-400 capitalize">{s.name}: {s.value}</span>
+                <div key={s.name} className="flex items-center gap-2 glass-pill px-3 py-1 rounded-full">
+                  <div className="h-2.5 w-2.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: COLORS[s.name as keyof typeof COLORS] || "#a1a1aa" }} />
+                  <span className="text-zinc-300 capitalize">{s.name}: <strong className="text-white">{s.value}</strong></span>
                 </div>
               ))}
             </div>
@@ -136,16 +154,25 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Themes Chart */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Top 5 Themes</h3>
+        <div className="glass-card rounded-2xl p-6 lg:col-span-2 relative overflow-hidden">
+          <h3 className="mb-4 text-sm font-bold text-zinc-200 tracking-wide">Top 5 Themes</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.themes} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
-                <XAxis type="number" stroke="#71717a" fontSize={12} />
-                <YAxis dataKey="name" type="category" stroke="#f4f4f5" fontSize={12} width={100} />
-                <Tooltip cursor={{ fill: "#27272a" }} contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
+                <XAxis type="number" stroke="#a1a1aa" fontSize={12} tickLine={false} />
+                <YAxis dataKey="name" type="category" stroke="#f4f4f5" fontSize={12} width={110} tickLine={false} />
+                <Tooltip 
+                  cursor={{ fill: "rgba(255,255,255,0.05)" }} 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(18, 18, 24, 0.85)", 
+                    backdropFilter: "blur(12px)", 
+                    borderColor: "rgba(255,255,255,0.15)", 
+                    borderRadius: "12px", 
+                    color: "#ffffff" 
+                  }} 
+                />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]}>
                   {data.themes.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -160,16 +187,17 @@ export default function DashboardPage() {
   );
 }
 
-// Reusable Stat Card Component
-function StatCard({ title, value, subValue, icon }: { title: string; value: string | number; subValue?: string; icon: React.ReactNode }) {
+// Reusable Stat Card Component with Glass Aesthetic
+function StatCard({ title, value, subValue, icon, glowColor }: { title: string; value: string | number; subValue?: string; icon: React.ReactNode; glowColor: string }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-zinc-400">{title}</p>
-        <div className="rounded-full bg-zinc-800 p-2">{icon}</div>
+    <div className="glass-card rounded-2xl p-5 relative overflow-hidden group">
+      <div className={`pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br ${glowColor} blur-xl group-hover:scale-150 transition-transform`} />
+      <div className="flex items-center justify-between relative z-10">
+        <p className="text-xs font-bold uppercase tracking-wider text-zinc-400">{title}</p>
+        <div className="rounded-xl bg-white/[0.08] border border-white/10 p-2.5 shadow-inner">{icon}</div>
       </div>
-      <p className="mt-3 text-3xl font-bold text-white">{value}</p>
-      {subValue && <p className="mt-1 text-xs text-zinc-500">{subValue}</p>}
+      <p className="mt-4 text-3xl font-black text-white tracking-tight relative z-10">{value}</p>
+      {subValue && <p className="mt-1.5 text-xs font-semibold text-rose-400/90 relative z-10">{subValue}</p>}
     </div>
   );
 }
