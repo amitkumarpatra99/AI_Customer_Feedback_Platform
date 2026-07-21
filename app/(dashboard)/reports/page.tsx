@@ -1,100 +1,200 @@
 "use client";
 
-import React, { useState } from "react";
-import { FileText, Calendar, Plus, ExternalLink, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend, PieChart, Pie, Cell 
+} from "recharts";
+import { FileText, Download, Calendar, TrendingUp, Loader2 } from "lucide-react";
+
+interface ReportData {
+  sentimentTrend: { date: string; POSITIVE: number; NEGATIVE: number; NEUTRAL: number }[];
+  channelReport: { channel: string; count: number }[];
+  topThemes: { name: string; count: number }[];
+  summary: {
+    totalFeedbacks: number;
+    actionedFeedbacks: number;
+    actionRate: number;
+    period: string;
+  };
+}
+
+const COLORS = ["#3b82f6", "#22c55e", "#ef4444", "#f59e0b", "#8b5cf6"];
 
 export default function ReportsPage() {
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<ReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [days, setDays] = useState(30);
 
-  const mockReports = [
-    {
-      id: "r1",
-      title: "Weekly Summary - July W2",
-      period: "Jul 5, 2026 - Jul 12, 2026",
-      createdAt: "2026-07-12T18:00:00Z",
-      stats: { total: 148, positive: 100, neutral: 30, negative: 18 }
-    },
-    {
-      id: "r2",
-      title: "Onboarding Flow Focus Report",
-      period: "Jun 1, 2026 - Jun 30, 2026",
-      createdAt: "2026-07-01T10:00:00Z",
-      stats: { total: 840, positive: 520, neutral: 180, negative: 140 }
+  useEffect(() => {
+    fetchReports();
+  }, [days]);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/reports?days=${days}`);
+      if (res.ok) {
+        setData(await res.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch reports", error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const handleGenerate = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
   };
+
+  const handleExport = () => {
+    if (!data) return;
+    
+    // Create CSV content
+    const csvContent = [
+      ["Report Type", "Metric", "Value"],
+      ["Summary", "Total Feedbacks", data.summary.totalFeedbacks],
+      ["Summary", "Actioned Feedbacks", data.summary.actionedFeedbacks],
+      ["Summary", "Action Rate", `${data.summary.actionRate}%`],
+      [""],
+      ["Channel Performance"],
+      ...data.channelReport.map(c => ["Channel", c.channel, c.count]),
+      [""],
+      ["Top Themes"],
+      ...data.topThemes.map(t => ["Theme", t.name, t.count])
+    ].map(row => row.join(",")).join("\n");
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `loop-report-${days}days.csv`;
+    a.click();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (!data) return <div className="text-red-500">Failed to load reports.</div>;
 
   return (
     <div className="space-y-6">
-      {/* Generate Report Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between bg-zinc-900 p-6 rounded-lg border border-zinc-800 items-center">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-500" /> Voice of the Customer (VoC) Reports
-          </h2>
-          <p className="text-sm text-zinc-450">
-            Generate narrative summaries of customer feedback trends and recommendations.
-          </p>
-        </div>
+      {/* Header & Controls */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-750 text-white rounded-md px-4 py-2.5 font-semibold text-sm transition-all disabled:opacity-50"
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <FileText className="h-6 w-6 text-blue-500" /> Reports
+          </h1>
+          <p className="text-sm text-zinc-400">Comprehensive analysis of your customer feedback.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          <select
+            value={days}
+            onChange={(e) => setDays(parseInt(e.target.value))}
+            className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
           >
-            <Plus className="w-4 h-4" /> {loading ? "Generating..." : "Generate New Report"}
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+          
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            <Download className="h-4 w-4" /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockReports.map((report) => (
-          <div key={report.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex flex-col justify-between h-56">
-            <div>
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-semibold text-white">{report.title}</h3>
-                <span className="inline-flex items-center gap-1 text-xs text-zinc-450">
-                  <Calendar className="w-3.5 h-3.5" /> {report.period}
-                </span>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="bg-green-500/5 border border-green-500/10 rounded py-2">
-                  <p className="text-xs text-zinc-450">Positive</p>
-                  <p className="text-lg font-bold text-green-400">{report.stats.positive}</p>
-                </div>
-                <div className="bg-zinc-800/20 border border-zinc-800 rounded py-2">
-                  <p className="text-xs text-zinc-450">Neutral</p>
-                  <p className="text-lg font-bold text-zinc-450">{report.stats.neutral}</p>
-                </div>
-                <div className="bg-red-500/5 border border-red-500/10 rounded py-2">
-                  <p className="text-xs text-zinc-450">Negative</p>
-                  <p className="text-lg font-bold text-red-400">{report.stats.negative}</p>
-                </div>
-              </div>
-            </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Total Feedbacks</p>
+          <p className="mt-2 text-3xl font-bold text-white">{data.summary.totalFeedbacks}</p>
+          <p className="mt-1 text-xs text-zinc-500">{data.summary.period}</p>
+        </div>
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Actioned</p>
+          <p className="mt-2 text-3xl font-bold text-green-400">{data.summary.actionedFeedbacks}</p>
+          <p className="mt-1 text-xs text-zinc-500">Resolved issues</p>
+        </div>
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Action Rate</p>
+          <p className="mt-2 text-3xl font-bold text-blue-400">{data.summary.actionRate}%</p>
+          <p className="mt-1 text-xs text-zinc-500">Resolution efficiency</p>
+        </div>
+      </div>
 
-            <div className="flex justify-between items-center border-t border-zinc-800 pt-3 mt-4">
-              <span className="text-xs text-zinc-500">
-                Created: {new Date(report.createdAt).toLocaleDateString()}
-              </span>
-              <div className="flex gap-3">
-                <button className="text-xs font-semibold text-zinc-400 hover:text-zinc-300 flex items-center gap-1">
-                  <Download className="w-3.5 h-3.5" /> Export PDF
-                </button>
-                <button className="text-xs font-semibold text-blue-500 hover:text-blue-400 flex items-center gap-1">
-                  View Report <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        
+        {/* Sentiment Trend */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-blue-500" /> Sentiment Trend Over Time
+          </h3>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.sentimentTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
+                <YAxis stroke="#71717a" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+                <Legend />
+                <Line type="monotone" dataKey="POSITIVE" stroke="#22c55e" strokeWidth={2} />
+                <Line type="monotone" dataKey="NEGATIVE" stroke="#ef4444" strokeWidth={2} />
+                <Line type="monotone" dataKey="NEUTRAL" stroke="#a1a1aa" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ))}
+        </div>
+
+        {/* Channel Performance */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Channel Performance</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.channelReport} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                <XAxis type="number" stroke="#71717a" fontSize={12} />
+                <YAxis dataKey="channel" type="category" stroke="#f4f4f5" fontSize={12} width={120} />
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+                <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Themes */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Top 5 Themes</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.topThemes}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="count"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {data.topThemes.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
       </div>
     </div>
   );
