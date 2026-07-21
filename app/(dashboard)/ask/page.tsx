@@ -9,30 +9,32 @@ export default function AskLoopPage() {
   const [sources, setSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
 
     setLoading(true);
-    // Mock response after 1 second
-    setTimeout(() => {
-      setAnswer(
-        "Users are generally happy with the new dashboard interface, noting that it is fast and beautiful. However, several users are running into issues with the sign-up and onboarding process. Specifically, verification emails get stuck, requiring multiple page refreshes."
-      );
-      setSources([
-        {
-          id: "1",
-          content: "The sign up flow gets stuck on verification. Had to refresh three times.",
-          channel: "Support ticket"
-        },
-        {
-          id: "2",
-          content: "Excellent performance, dashboard loads super fast now! Love the new UI.",
-          channel: "App store review"
-        }
-      ]);
+    setAnswer(null);
+    setSources([]);
+    try {
+      const res = await fetch("/api/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnswer(data.answer);
+        setSources(data.contextUsed || []);
+      } else {
+        setAnswer("Failed to synthesize response. Please try again later.");
+      }
+    } catch (err) {
+      console.error("Ask AI error", err);
+      setAnswer("Network error. Could not connect to LOOP AI services.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
