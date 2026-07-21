@@ -37,6 +37,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CSV file is empty" }, { status: 400 });
     }
 
+    // Valid Prisma Enum channels
+    const validChannels = ["SUPPORT_TICKET", "APP_STORE", "NPS_SURVEY", "SALES_CALL", "COMMUNITY", "OTHER"];
+
     // 3. Har row ko process karo aur AI sentiment lagao
     const feedbacksToCreate = rows.map(row => {
       const content = row.content || row.feedback || row.text; // Flexible column names
@@ -44,7 +47,7 @@ export async function POST(request: Request) {
       const customerLabel = row.customerLabel || row.customer || "Unknown";
 
       // Simple AI Logic
-      const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible"];
+      const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible", "frustrating", "confusing"];
       const isNegative = negativeWords.some(word => content.toLowerCase().includes(word));
 
       const validChannel = Object.values(Channel).includes(rawChannel as Channel) 

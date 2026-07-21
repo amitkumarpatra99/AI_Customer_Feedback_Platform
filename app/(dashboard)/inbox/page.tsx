@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Plus, X, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation"; // ✅ Router import kiya
 
 interface Feedback {
   id: string;
@@ -15,7 +16,8 @@ interface Feedback {
 }
 
 export default function InboxPage() {
-  const { data: session } = useSession(); // User ka role check karne ke liye
+  const router = useRouter(); // ✅ Router ko component ke ANDAR move kiya (Zaroori fix)
+  const { data: session } = useSession(); 
   
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);

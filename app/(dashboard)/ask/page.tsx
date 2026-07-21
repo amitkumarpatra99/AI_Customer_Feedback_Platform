@@ -1,38 +1,74 @@
 "use client";
 
-import React, { useState } from "react";
-import { HelpCircle, Send, BookOpen } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Loader2, Bot, User, MessageSquare } from "lucide-react";
+
+interface Message {
+  id: string;
+  role: "user" | "ai";
+  text: string;
+  feedbacks?: { id: string; content: string; sentiment: string; status: string }[];
+}
 
 export default function AskLoopPage() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-  const [sources, setSources] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "ai",
+      text: "Hello! I'm LOOP AI. You can ask me things like:\n• 'Show me negative feedback about billing'\n• 'What are users saying about the new UI?'\n• 'Find all login issues'",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim()) return;
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    setLoading(true);
-    // Mock response after 1 second
-    setTimeout(() => {
-      setAnswer(
-        "Users are generally happy with the new dashboard interface, noting that it is fast and beautiful. However, several users are running into issues with the sign-up and onboarding process. Specifically, verification emails get stuck, requiring multiple page refreshes."
-      );
-      setSources([
-        {
-          id: "1",
-          content: "The sign up flow gets stuck on verification. Had to refresh three times.",
-          channel: "Support ticket"
-        },
-        {
-          id: "2",
-          content: "Excellent performance, dashboard loads super fast now! Love the new UI.",
-          channel: "App store review"
-        }
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { id: Date.now().toString(), role: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: input }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          text: data.response,
+          feedbacks: data.feedbacks,
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), role: "ai", text: "Sorry, I encountered an error. Please try again." },
       ]);
-      setLoading(false);
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getSentimentColor = (sentiment: string) => {
+    if (sentiment === "POSITIVE") return "text-green-400 bg-green-500/10 border-green-500/20";
+    if (sentiment === "NEGATIVE") return "text-red-400 bg-red-500/10 border-red-500/20";
+    return "text-zinc-400 bg-zinc-500/10 border-zinc-500/20";
   };
 
   return (

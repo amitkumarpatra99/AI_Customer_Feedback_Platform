@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { TrendingUp, ArrowUp, ArrowDown, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Tag, MessageSquare, X, Loader2, TrendingUp } from "lucide-react";
 
 export default function TrendsPage() {
   const mockThemes = [
@@ -51,7 +51,33 @@ export default function TrendsPage() {
             <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping" /> 🚨 1 Theme Spiking Today
           </span>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {themes.map((theme) => (
+            <button
+              key={theme.id}
+              onClick={() => setSelectedTheme(theme)}
+              className="group relative flex flex-col items-start rounded-lg border border-zinc-800 bg-zinc-900 p-5 text-left transition-all hover:border-zinc-600 hover:bg-zinc-800/50"
+            >
+              {/* Color Indicator */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" 
+                style={{ backgroundColor: theme.color }} 
+              />
+              
+              <div className="flex w-full items-start justify-between mb-3 pl-3">
+                <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
+                  {theme.name}
+                </h3>
+                <span className="flex items-center gap-1 rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300">
+                  <MessageSquare className="h-3 w-3" />
+                  {theme._count.feedbacks}
+                </span>
+              </div>
+
+              <p className="pl-3 text-sm text-zinc-400 line-clamp-2">
+                {theme.description || "No description available."}
+              </p>
 
       {/* Themes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,6 +114,12 @@ export default function TrendsPage() {
                 <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Representative Verbatim</p>
                 <p className="text-xs text-zinc-200 mt-1 italic font-light">"{theme.lastFeedback}"</p>
               </div>
+              <button 
+                onClick={() => setSelectedTheme(null)} 
+                className="rounded-md p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
             <div className="flex justify-between items-center border-t border-white/10 pt-4 mt-4">
@@ -97,8 +129,8 @@ export default function TrendsPage() {
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

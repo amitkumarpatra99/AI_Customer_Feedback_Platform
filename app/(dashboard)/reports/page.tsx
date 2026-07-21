@@ -1,34 +1,84 @@
 "use client";
 
-import React, { useState } from "react";
-import { FileText, Calendar, Plus, ExternalLink, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend, PieChart, Pie, Cell 
+} from "recharts";
+import { FileText, Download, Calendar, TrendingUp, Loader2 } from "lucide-react";
+
+interface ReportData {
+  sentimentTrend: { date: string; POSITIVE: number; NEGATIVE: number; NEUTRAL: number }[];
+  channelReport: { channel: string; count: number }[];
+  topThemes: { name: string; count: number }[];
+  summary: {
+    totalFeedbacks: number;
+    actionedFeedbacks: number;
+    actionRate: number;
+    period: string;
+  };
+}
+
+const COLORS = ["#3b82f6", "#22c55e", "#ef4444", "#f59e0b", "#8b5cf6"];
 
 export default function ReportsPage() {
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<ReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [days, setDays] = useState(30);
 
-  const mockReports = [
-    {
-      id: "r1",
-      title: "Weekly Summary - July W2",
-      period: "Jul 5, 2026 - Jul 12, 2026",
-      createdAt: "2026-07-12T18:00:00Z",
-      stats: { total: 148, positive: 100, neutral: 30, negative: 18 }
-    },
-    {
-      id: "r2",
-      title: "Onboarding Flow Focus Report",
-      period: "Jun 1, 2026 - Jun 30, 2026",
-      createdAt: "2026-07-01T10:00:00Z",
-      stats: { total: 840, positive: 520, neutral: 180, negative: 140 }
+  useEffect(() => {
+    fetchReports();
+  }, [days]);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/reports?days=${days}`);
+      if (res.ok) {
+        setData(await res.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch reports", error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const handleGenerate = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
   };
+
+  const handleExport = () => {
+    if (!data) return;
+    
+    // Create CSV content
+    const csvContent = [
+      ["Report Type", "Metric", "Value"],
+      ["Summary", "Total Feedbacks", data.summary.totalFeedbacks],
+      ["Summary", "Actioned Feedbacks", data.summary.actionedFeedbacks],
+      ["Summary", "Action Rate", `${data.summary.actionRate}%`],
+      [""],
+      ["Channel Performance"],
+      ...data.channelReport.map(c => ["Channel", c.channel, c.count]),
+      [""],
+      ["Top Themes"],
+      ...data.topThemes.map(t => ["Theme", t.name, t.count])
+    ].map(row => row.join(",")).join("\n");
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `loop-report-${days}days.csv`;
+    a.click();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (!data) return <div className="text-red-500">Failed to load reports.</div>;
 
   return (
     <div className="space-y-8">
@@ -43,12 +93,29 @@ export default function ReportsPage() {
           </p>
         </div>
         <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <FileText className="h-6 w-6 text-blue-500" /> Reports
+          </h1>
+          <p className="text-sm text-zinc-400">Comprehensive analysis of your customer feedback.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          <select
+            value={days}
+            onChange={(e) => setDays(parseInt(e.target.value))}
+            className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+          
           <button
             onClick={handleGenerate}
             disabled={loading}
             className="glass-button flex items-center gap-2 text-white rounded-xl px-5 py-3 font-bold text-xs shadow-lg disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" /> {loading ? "Generating..." : "Generate New Report"}
+            <Download className="h-4 w-4" /> Export CSV
           </button>
         </div>
       </div>
@@ -94,7 +161,8 @@ export default function ReportsPage() {
               </div>
             </div>
           </div>
-        ))}
+        </div>
+
       </div>
     </div>
   );

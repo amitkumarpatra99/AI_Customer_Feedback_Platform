@@ -1,62 +1,39 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import prisma from "@/lib/db";
-import { generateVoCReport } from "@/lib/ai";
-import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { PrismaClient } from "@prisma/client";
 
-const reportSchema = z.object({
-  title: z.string().min(1),
-  periodStart: z.string().datetime(),
-  periodEnd: z.string().datetime()
-});
+const prisma = new PrismaClient();
 
-export async function GET() {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const reports = await prisma.report.findMany({
-      where: { workspaceId: session.user.workspaceId },
-      orderBy: { createdAt: "desc" }
-    });
-
-    return NextResponse.json(reports);
-  } catch (error: any) {
-    console.error("API GET reports error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-}
 
-export async function POST(req: Request) {
+  const { searchParams } = new URL(request.url);
+  const days = parseInt(searchParams.get("days") || "30"); // Default 30 days
+  
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const workspaceId = session.user.workspaceId;
 
-    if (session.user.role === "VIEWER") {
-      return NextResponse.json({ error: "Forbidden: Read-only access" }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const result = reportSchema.safeParse(body);
-    if (!result.success) {
-      return NextResponse.json({ error: "Invalid Input", details: result.error.format() }, { status: 400 });
-    }
-
-    const { title, periodStart, periodEnd } = result.data;
-    const startDate = new Date(periodStart);
-    const endDate = new Date(periodEnd);
-
-    // 1. Pre-compute period statistics
+    // 1. Sentiment Trend (Daily breakdown)
     const feedbacks = await prisma.feedback.findMany({
-      where: {
-        workspaceId: session.user.workspaceId,
-        createdAt: {
-          gte: startDate,
-          lte: endDate
+      where: { 
+        workspaceId,
+        createdAt: { gte: startDate }
+      },
+      select: {
+        sentiment: true,
+        channel: true,
+        status: true,
+        createdAt: true,
+        themes: {
+          include: { theme: { select: { name: true } } }
         }
       }
     });
@@ -66,12 +43,13 @@ export async function POST(req: Request) {
     const neutral = feedbacks.filter(f => f.sentiment === "NEUTRAL").length;
     const negative = feedbacks.filter(f => f.sentiment === "NEGATIVE").length;
 
-    // Get mock themes and representative quotes for the stub
-    const reportNarrative = await generateVoCReport(title, {
-      totalItems,
-      sentimentBreakdown: { positive, neutral, negative },
-      topThemes: [{ name: "General Feedback", count: totalItems }],
-      representativeQuotes: feedbacks.slice(0, 3).map(f => f.content)
+    // 3. Top Themes
+    const themeCounts: Record<string, number> = {};
+    feedbacks.forEach(f => {
+      f.themes.forEach(ft => {
+        const name = ft.theme.name;
+        themeCounts[name] = (themeCounts[name] || 0) + 1;
+      });
     });
 
     // 2. Save the report to the database
@@ -94,9 +72,8 @@ export async function POST(req: Request) {
       }
     });
 
-    return NextResponse.json(report, { status: 201 });
-  } catch (error: any) {
-    console.error("API POST reports error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    console.error("Reports error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
