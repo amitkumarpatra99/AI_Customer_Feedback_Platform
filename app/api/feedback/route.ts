@@ -175,3 +175,57 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+// POST: Manually create feedback with local AI sentiment scoring
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || session.user.role === "VIEWER") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { content, channel, customerLabel } = body;
+
+    if (!content) {
+      return NextResponse.json({ error: "Content is required" }, { status: 400 });
+    }
+
+    // Heuristics for local AI sentiment score mapping
+    const negativeWords = ["bad", "crash", "issue", "problem", "hate", "slow", "broken", "worst", "terrible", "bug", "fail"];
+    const positiveWords = ["good", "love", "awesome", "great", "excellent", "fast", "gorgeous", "saved", "recommend", "solved"];
+    
+    let sentiment = "NEUTRAL";
+    let sentimentScore = 0.0;
+
+    const lowerContent = content.toLowerCase();
+    const isNegative = negativeWords.some(word => lowerContent.includes(word));
+    const isPositive = positiveWords.some(word => lowerContent.includes(word));
+
+    if (isNegative && !isPositive) {
+      sentiment = "NEGATIVE";
+      sentimentScore = -0.7;
+    } else if (isPositive && !isNegative) {
+      sentiment = "POSITIVE";
+      sentimentScore = 0.8;
+    }
+
+    const feedback = await prisma.feedback.create({
+      data: {
+        content,
+        channel,
+        customerLabel: customerLabel || null,
+        sentiment: sentiment as any,
+        sentimentScore,
+        status: "NEW",
+        workspaceId: session.user.workspaceId,
+      },
+    });
+
+    return NextResponse.json(feedback, { status: 201 });
+  } catch (error) {
+    console.error("Feedback create error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
