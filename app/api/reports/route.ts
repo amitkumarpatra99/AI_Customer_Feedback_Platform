@@ -38,33 +38,10 @@ export async function GET(request: Request) {
       }
     });
 
-    // Sentiment by date
-    const sentimentByDate: Record<string, { POSITIVE: number; NEGATIVE: number; NEUTRAL: number }> = {};
-    feedbacks.forEach(f => {
-      const date = f.createdAt.toISOString().split("T")[0];
-      if (!sentimentByDate[date]) {
-        sentimentByDate[date] = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0 };
-      }
-      sentimentByDate[date][f.sentiment]++;
-    });
-
-    const sentimentTrend = Object.entries(sentimentByDate)
-      .map(([date, counts]) => ({
-        date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        ...counts
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    // 2. Channel Performance
-    const channelCounts: Record<string, number> = {};
-    feedbacks.forEach(f => {
-      channelCounts[f.channel] = (channelCounts[f.channel] || 0) + 1;
-    });
-
-    const channelReport = Object.entries(channelCounts).map(([channel, count]) => ({
-      channel: channel.replace("_", " "),
-      count
-    })).sort((a, b) => b.count - a.count);
+    const totalItems = feedbacks.length;
+    const positive = feedbacks.filter(f => f.sentiment === "POSITIVE").length;
+    const neutral = feedbacks.filter(f => f.sentiment === "NEUTRAL").length;
+    const negative = feedbacks.filter(f => f.sentiment === "NEGATIVE").length;
 
     // 3. Top Themes
     const themeCounts: Record<string, number> = {};
@@ -75,25 +52,23 @@ export async function GET(request: Request) {
       });
     });
 
-    const topThemes = Object.entries(themeCounts)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    // 4. Action Rate
-    const totalFeedbacks = feedbacks.length;
-    const actionedFeedbacks = feedbacks.filter(f => f.status === "ACTIONED").length;
-    const actionRate = totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
-
-    return NextResponse.json({
-      sentimentTrend,
-      channelReport,
-      topThemes,
-      summary: {
-        totalFeedbacks,
-        actionedFeedbacks,
-        actionRate,
-        period: `Last ${days} days`
+    // 2. Save the report to the database
+    const report = await prisma.report.create({
+      data: {
+        title,
+        periodStart: startDate,
+        periodEnd: endDate,
+        contentJson: JSON.stringify({
+          narrative: reportNarrative,
+          stats: {
+            totalItems,
+            positive,
+            neutral,
+            negative
+          }
+        }),
+        workspaceId: session.user.workspaceId,
+        generatedById: session.user.id
       }
     });
 
