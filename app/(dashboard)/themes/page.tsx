@@ -93,7 +93,6 @@ export default function ThemesPage() {
         </div>
       )}
 
-      {/* Theme Detail Modal */}
       {selectedTheme && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900 shadow-2xl overflow-hidden">
