@@ -131,6 +131,7 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") || "";
   const sentiment = searchParams.get("sentiment") || "";
   const status = searchParams.get("status") || "";
+  const theme = searchParams.get("theme") || "";
 
   // Dynamic WHERE clause banana (Multi-tenant safe)
   const whereClause: any = { workspaceId };
@@ -143,6 +144,15 @@ export async function GET(request: Request) {
   }
   if (status && status !== "ALL") {
     whereClause.status = status;
+  }
+  if (theme && theme !== "ALL") {
+    whereClause.themes = {
+      some: {
+        theme: {
+          name: theme
+        }
+      }
+    };
   }
 
   try {
