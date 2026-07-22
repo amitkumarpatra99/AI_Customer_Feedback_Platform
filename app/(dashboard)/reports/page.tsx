@@ -81,17 +81,9 @@ export default function ReportsPage() {
   if (!data) return <div className="text-red-500">Failed to load reports.</div>;
 
   return (
-    <div className="space-y-8">
-      {/* Generate Report Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between glass-card p-6 rounded-2xl items-start md:items-center">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-blue-400" /> Voice of the Customer (VoC) Reports
-          </h2>
-          <p className="text-sm text-zinc-400">
-            Generate narrative summaries of customer feedback trends and strategic recommendations.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Header & Controls */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-500" /> Reports
@@ -111,55 +103,95 @@ export default function ReportsPage() {
           </select>
           
           <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="glass-button flex items-center gap-2 text-white rounded-xl px-5 py-3 font-bold text-xs shadow-lg disabled:opacity-50"
+            onClick={handleExport}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
           >
             <Download className="h-4 w-4" /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {mockReports.map((report) => (
-          <div key={report.id} className="glass-card rounded-2xl p-6 flex flex-col justify-between h-64 relative overflow-hidden">
-            <div>
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-bold text-white tracking-tight">{report.title}</h3>
-                <span className="glass-pill px-3 py-1 rounded-full text-xs text-zinc-300 font-mono flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-400" /> {report.period}
-                </span>
-              </div>
-              <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl py-2.5">
-                  <p className="text-[11px] font-bold text-zinc-400 uppercase">Positive</p>
-                  <p className="text-xl font-black text-emerald-400 mt-0.5">{report.stats.positive}</p>
-                </div>
-                <div className="bg-white/[0.03] border border-white/10 rounded-xl py-2.5">
-                  <p className="text-[11px] font-bold text-zinc-400 uppercase">Neutral</p>
-                  <p className="text-xl font-black text-zinc-300 mt-0.5">{report.stats.neutral}</p>
-                </div>
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl py-2.5">
-                  <p className="text-[11px] font-bold text-zinc-400 uppercase">Negative</p>
-                  <p className="text-xl font-black text-rose-400 mt-0.5">{report.stats.negative}</p>
-                </div>
-              </div>
-            </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Total Feedbacks</p>
+          <p className="mt-2 text-3xl font-bold text-white">{data.summary.totalFeedbacks}</p>
+          <p className="mt-1 text-xs text-zinc-500">{data.summary.period}</p>
+        </div>
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Actioned</p>
+          <p className="mt-2 text-3xl font-bold text-green-400">{data.summary.actionedFeedbacks}</p>
+          <p className="mt-1 text-xs text-zinc-500">Resolved issues</p>
+        </div>
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-sm text-zinc-400">Action Rate</p>
+          <p className="mt-2 text-3xl font-bold text-blue-400">{data.summary.actionRate}%</p>
+          <p className="mt-1 text-xs text-zinc-500">Resolution efficiency</p>
+        </div>
+      </div>
 
-            <div className="flex justify-between items-center border-t border-white/10 pt-4 mt-4">
-              <span className="text-xs text-zinc-400 font-mono">
-                Created: {new Date(report.createdAt).toLocaleDateString()}
-              </span>
-              <div className="flex gap-4">
-                <button className="text-xs font-bold text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors">
-                  <Download className="w-3.5 h-3.5" /> Export PDF
-                </button>
-                <button className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors">
-                  View Report <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        
+        {/* Sentiment Trend */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-blue-500" /> Sentiment Trend Over Time
+          </h3>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.sentimentTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
+                <YAxis stroke="#71717a" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+                <Legend />
+                <Line type="monotone" dataKey="POSITIVE" stroke="#22c55e" strokeWidth={2} />
+                <Line type="monotone" dataKey="NEGATIVE" stroke="#ef4444" strokeWidth={2} />
+                <Line type="monotone" dataKey="NEUTRAL" stroke="#a1a1aa" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Channel Performance */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Channel Performance</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.channelReport} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                <XAxis type="number" stroke="#71717a" fontSize={12} />
+                <YAxis dataKey="channel" type="category" stroke="#f4f4f5" fontSize={12} width={120} />
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+                <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Themes */}
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <h3 className="mb-4 text-sm font-semibold text-zinc-300">Top 5 Themes</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.topThemes}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  dataKey="count"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {data.topThemes.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", color: "#f4f4f5" }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

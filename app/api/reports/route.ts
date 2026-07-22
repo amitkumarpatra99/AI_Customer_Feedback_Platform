@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   try {
     const workspaceId = session.user.workspaceId;
 
-    // 1. Sentiment Trend (Daily breakdown)
+    // 1. Fetch all feedbacks for the given period
     const feedbacks = await prisma.feedback.findMany({
       where: { 
         workspaceId,
@@ -38,12 +38,35 @@ export async function GET(request: Request) {
       }
     });
 
-    const totalItems = feedbacks.length;
-    const positive = feedbacks.filter(f => f.sentiment === "POSITIVE").length;
-    const neutral = feedbacks.filter(f => f.sentiment === "NEUTRAL").length;
-    const negative = feedbacks.filter(f => f.sentiment === "NEGATIVE").length;
+    // 2. Aggregate: Sentiment Trend (Daily breakdown)
+    const sentimentByDate: Record<string, { POSITIVE: number; NEGATIVE: number; NEUTRAL: number }> = {};
+    feedbacks.forEach(f => {
+      const date = f.createdAt.toISOString().split("T")[0];
+      if (!sentimentByDate[date]) {
+        sentimentByDate[date] = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0 };
+      }
+      sentimentByDate[date][f.sentiment]++;
+    });
 
-    // 3. Top Themes
+    const sentimentTrend = Object.entries(sentimentByDate)
+      .map(([date, counts]) => ({
+        date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        ...counts
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // 3. Aggregate: Channel Performance
+    const channelCounts: Record<string, number> = {};
+    feedbacks.forEach(f => {
+      channelCounts[f.channel] = (channelCounts[f.channel] || 0) + 1;
+    });
+
+    const channelReport = Object.entries(channelCounts).map(([channel, count]) => ({
+      channel: channel.replace("_", " "),
+      count
+    })).sort((a, b) => b.count - a.count);
+
+    // 4. Aggregate: Top Themes
     const themeCounts: Record<string, number> = {};
     feedbacks.forEach(f => {
       f.themes.forEach(ft => {
@@ -52,23 +75,25 @@ export async function GET(request: Request) {
       });
     });
 
-    // 2. Save the report to the database
-    const report = await prisma.report.create({
-      data: {
-        title,
-        periodStart: startDate,
-        periodEnd: endDate,
-        contentJson: JSON.stringify({
-          narrative: reportNarrative,
-          stats: {
-            totalItems,
-            positive,
-            neutral,
-            negative
-          }
-        }),
-        workspaceId: session.user.workspaceId,
-        generatedById: session.user.id
+    const topThemes = Object.entries(themeCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // 5. Aggregate: Summary Stats
+    const totalFeedbacks = feedbacks.length;
+    const actionedFeedbacks = feedbacks.filter(f => f.status === "ACTIONED").length;
+    const actionRate = totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
+
+    return NextResponse.json({
+      sentimentTrend,
+      channelReport,
+      topThemes,
+      summary: {
+        totalFeedbacks,
+        actionedFeedbacks,
+        actionRate,
+        period: `Last ${days} days`
       }
     });
 
