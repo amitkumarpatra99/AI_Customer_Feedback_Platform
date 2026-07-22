@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Search, Plus, X, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, X, Loader2, Trash2, CheckSquare, Square, Download, CheckCircle, Info } from "lucide-react";
+import { toast } from "sonner";
 
 interface Feedback {
   id: string;
@@ -50,6 +51,10 @@ function InboxContent() {
     theme: themeParam
   });
   
+  // Selection and Bulk Actions state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
   // Add Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
@@ -87,6 +92,7 @@ function InboxContent() {
   // Fetch feedbacks list based on filters
   useEffect(() => {
     fetchFeedbacks();
+    setSelectedIds([]); // Clear selection when filters change
   }, [filters]);
 
   const fetchFeedbacks = async () => {
@@ -126,12 +132,14 @@ function InboxContent() {
       if (res.ok) {
         setIsModalOpen(false);
         setFormData({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
-        fetchFeedbacks(); // Refresh list
+        toast.success("Feedback log added and AI-analyzed!");
+        fetchFeedbacks();
       } else {
-        alert("Failed to add feedback");
+        toast.error("Failed to add feedback");
       }
     } catch (error) {
       console.error("Error adding feedback", error);
+      toast.error("Server connection failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -150,9 +158,10 @@ function InboxContent() {
       if (res.ok) {
         const updated = await res.json();
         setSelectedFeedback(prev => prev ? { ...prev, status: updated.status } : null);
+        toast.success(`Workflow status updated to ${status}`);
         fetchFeedbacks();
       } else {
-        alert("Failed to update status");
+        toast.error("Failed to update status");
       }
     } catch (err) {
       console.error("Error updating status", err);
@@ -173,15 +182,111 @@ function InboxContent() {
       if (res.ok) {
         setIsDetailOpen(false);
         setSelectedFeedback(null);
+        toast.success("Feedback log deleted successfully.");
         fetchFeedbacks();
       } else {
-        alert("Failed to delete feedback log");
+        toast.error("Failed to delete feedback log");
       }
     } catch (err) {
       console.error("Error deleting feedback log", err);
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  // Bulk Actions Handlers
+  const handleBulkStatusUpdate = async (status: string) => {
+    setIsBulkProcessing(true);
+    try {
+      const res = await fetch("/api/feedback/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, status })
+      });
+      if (res.ok) {
+        toast.success(`Successfully updated ${selectedIds.length} logs to ${status}`);
+        setSelectedIds([]);
+        fetchFeedbacks();
+      } else {
+        toast.error("Failed to perform bulk status update");
+      }
+    } catch (err) {
+      toast.error("Network error during bulk action");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} logs? This action is permanent.`)) return;
+    setIsBulkProcessing(true);
+    try {
+      const res = await fetch("/api/feedback/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds })
+      });
+      if (res.ok) {
+        toast.success(`Successfully deleted ${selectedIds.length} feedback logs`);
+        setSelectedIds([]);
+        fetchFeedbacks();
+      } else {
+        toast.error("Failed to perform bulk deletion");
+      }
+    } catch (err) {
+      toast.error("Network error during bulk deletion");
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  // CSV Export Handler
+  const handleExportCSV = () => {
+    if (feedbacks.length === 0) {
+      toast.error("No feedback items to export.");
+      return;
+    }
+
+    const headers = ["ID", "Status", "Content", "Sentiment", "Channel", "Date"];
+    const rows = feedbacks.map(f => [
+      f.id,
+      f.status,
+      `"${f.content.replace(/"/g, '""')}"`,
+      f.sentiment,
+      f.channel,
+      new Date(f.createdAt).toLocaleDateString()
+    ]);
+
+    const csvContent = "\ufeff" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `loop_feedback_export_${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV file downloaded successfully!");
+  };
+
+  // Search highlighting helper
+  const highlightText = (text: string, search: string) => {
+    if (!search.trim()) return text;
+    const regex = new RegExp(`(${search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, "gi");
+    const parts = text.split(regex);
+    return (
+      <>
+        {parts.map((part, i) => 
+          regex.test(part) ? (
+            <mark key={i} className="bg-blue-500/30 text-blue-300 px-0.5 rounded font-bold">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -191,8 +296,8 @@ function InboxContent() {
   };
 
   const getSentimentColor = (sentiment: string) => {
-    if (sentiment === "POSITIVE") return "text-emerald-400 font-semibold";
-    if (sentiment === "NEGATIVE") return "text-rose-400 font-semibold";
+    if (sentiment === "POSITIVE" || sentiment === "POS") return "text-emerald-400 font-semibold";
+    if (sentiment === "NEGATIVE" || sentiment === "NEG") return "text-rose-400 font-semibold";
     return "text-zinc-400";
   };
 
@@ -200,7 +305,6 @@ function InboxContent() {
   const handleViewDetail = async (feedback: Feedback) => {
     setSelectedFeedback(feedback);
     setIsDetailOpen(true);
-    // Fetch full detail containing AI score & explanation (if missing)
     try {
       const res = await fetch(`/api/feedback/${feedback.id}`);
       if (res.ok) {
@@ -218,18 +322,43 @@ function InboxContent() {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.length === feedbacks.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(feedbacks.map(f => f.id));
+    }
+  };
+
+  const handleSelectRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Stop opening the detail modal
+    if (selectedIds.includes(id)) {
+      setSelectedIds(prev => prev.filter(item => item !== id));
+    } else {
+      setSelectedIds(prev => [...prev, id]);
+    }
+  };
+
   const isViewer = session?.user?.role === "VIEWER";
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24 relative">
       {/* Header & Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Feedback Inbox</h1>
-          <p className="text-sm text-zinc-400">Manage and review customer feedback in real-time.</p>
+          <p className="text-sm text-zinc-400">Manage, triage, and review customer feedback in real-time.</p>
         </div>
         
         <div className="flex gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="glass-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold hover:text-white transition-colors"
+          >
+            <Download className="h-4 w-4" /> Export CSV
+          </button>
+
           {!isViewer && (
             <>
               <input
@@ -241,39 +370,37 @@ function InboxContent() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   
-                  const formData = new FormData();
-                  formData.append("file", file);
+                  const formDataUpload = new FormData();
+                  formDataUpload.append("file", file);
                   
                   const res = await fetch("/api/feedback/import", {
                     method: "POST",
-                    body: formData,
+                    body: formDataUpload,
                   });
                   
                   if (res.ok) {
                     const data = await res.json();
-                    alert(data.message);
+                    toast.success(data.message || "CSV Imported successfully!");
                     fetchFeedbacks();
                   } else {
-                    alert("Failed to import CSV");
+                    toast.error("Failed to import CSV");
                   }
                 }}
               />
               <label
                 htmlFor="csv-upload"
-                className="glass-button-secondary flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold"
+                className="glass-button-secondary flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold hover:text-white"
               >
                 📥 Import CSV
               </label>
-            </>
-          )}
 
-          {!isViewer && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="glass-button flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-md"
-            >
-              <Plus className="h-4 w-4" /> Add Feedback
-            </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="glass-button flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-md"
+              >
+                <Plus className="h-4 w-4" /> Add Feedback
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -340,8 +467,18 @@ function InboxContent() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.04] text-zinc-300 border-b border-white/10 uppercase text-[11px] font-bold tracking-wider">
+              <thead className="bg-white/[0.04] text-zinc-350 border-b border-white/10 uppercase text-[11px] font-bold tracking-wider">
                 <tr>
+                  {!isViewer && (
+                    <th className="w-12 px-6 py-3.5">
+                      <button 
+                        onClick={handleSelectAll}
+                        className="text-zinc-450 hover:text-white transition-colors"
+                      >
+                        {selectedIds.length === feedbacks.length ? <CheckSquare className="h-4.5 w-4.5 text-blue-450" /> : <Square className="h-4.5 w-4.5" />}
+                      </button>
+                    </th>
+                  )}
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5">Feedback Content</th>
                   <th className="px-6 py-3.5">Sentiment</th>
@@ -357,13 +494,20 @@ function InboxContent() {
                     onClick={() => handleViewDetail(feedback)}
                     className="hover:bg-white/[0.06] transition-colors cursor-pointer"
                   >
+                    {!isViewer && (
+                      <td className="px-6 py-4" onClick={(e) => handleSelectRow(feedback.id, e)}>
+                        <button className="text-zinc-550 hover:text-white transition-colors">
+                          {selectedIds.includes(feedback.id) ? <CheckSquare className="h-4.5 w-4.5 text-blue-400" /> : <Square className="h-4.5 w-4.5" />}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold tracking-wide ${getStatusColor(feedback.status)}`}>
                         {feedback.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 max-w-md truncate text-zinc-100 font-medium" title={feedback.content}>
-                      {feedback.content}
+                    <td className="px-6 py-4 max-w-md truncate text-zinc-150 font-medium" title={feedback.content}>
+                      {highlightText(feedback.content, filters.search)}
                     </td>
                     <td className={`px-6 py-4 ${getSentimentColor(feedback.sentiment)}`}>
                       {feedback.sentiment}
@@ -389,11 +533,66 @@ function InboxContent() {
         )}
       </div>
 
+      {/* Floating Bulk Actions Bar */}
+      {selectedIds.length > 0 && !isViewer && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-zinc-950/85 backdrop-blur-xl border border-white/15 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 animate-slideUp">
+          <div className="text-xs text-zinc-300 font-medium whitespace-nowrap">
+            Selected: <strong className="text-white text-sm font-black">{selectedIds.length}</strong> logs
+          </div>
+          
+          <div className="h-6 w-px bg-white/10" />
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleBulkStatusUpdate("NEW")}
+              disabled={isBulkProcessing}
+              className="glass-button-secondary rounded-xl px-3 py-2 text-[10px] font-bold hover:text-white transition-all disabled:opacity-50"
+            >
+              New
+            </button>
+            <button
+              onClick={() => handleBulkStatusUpdate("REVIEWED")}
+              disabled={isBulkProcessing}
+              className="glass-button-secondary rounded-xl px-3 py-2 text-[10px] font-bold hover:text-white transition-all disabled:opacity-50"
+            >
+              Reviewed
+            </button>
+            <button
+              onClick={() => handleBulkStatusUpdate("ACTIONED")}
+              disabled={isBulkProcessing}
+              className="glass-button-secondary rounded-xl px-3 py-2 text-[10px] font-bold hover:text-white transition-all disabled:opacity-50"
+            >
+              Actioned
+            </button>
+          </div>
+
+          {isAdmin && (
+            <>
+              <div className="h-6 w-px bg-white/10" />
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkProcessing}
+                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-455 border border-rose-500/20 rounded-xl px-4 py-2 text-[10px] font-bold flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => setSelectedIds([])}
+            className="text-zinc-550 hover:text-white text-xs font-semibold p-1"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Add Feedback Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
           <div className="glass-panel relative w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-white/15">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 border-b border-white/10 pb-3">
               <h2 className="text-lg font-bold text-white">Add New Feedback</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
                 <X className="h-5 w-5" />
@@ -508,7 +707,7 @@ function InboxContent() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="block text-[10px] font-semibold text-zinc-400 mb-1">Sentiment Sentiment Score</span>
+                    <span className="block text-[10px] font-semibold text-zinc-400 mb-1">Sentiment Score</span>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold ${getSentimentColor(selectedFeedback.sentiment)}`}>
                         {selectedFeedback.sentiment}
@@ -565,7 +764,7 @@ function InboxContent() {
                 </div>
 
                 <div className="flex gap-3">
-                  {session?.user?.role === "ADMIN" && (
+                  {isAdmin && (
                     <button
                       onClick={handleDeleteFeedback}
                       disabled={isDeleting}

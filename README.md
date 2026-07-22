@@ -1,137 +1,37 @@
-# 🔄 Project LOOP — AI Customer-Feedback Intelligence Platform
+# 🚀 Project LOOP | AI Customer Feedback Intelligence Platform
 
-Project LOOP is a corporate-grade feedback analysis and intelligence platform. It ingests multi-channel customer feedback (support tickets, reviews, surveys, call notes, and social mentions) and uses Claude AI to automatically classify, cluster, detect trends, and answer user queries grounded in real data.
+Project LOOP is a modern, multi-tenant B2B SaaS application designed to help companies collect, analyze, and act on customer feedback using AI-powered insights. It transforms raw, unstructured feedback from various channels into actionable intelligence.
 
----
+## 🌟 Key Features
 
-## 🚀 Key Features
+- **🔐 Multi-Tenant Auth & RBAC**: Secure role-based access control (Admin, Analyst, Viewer) ensuring strict data isolation between workspaces.
+- **📊 Analytics Dashboard**: Real-time visualizations of feedback volume, sentiment breakdown, and top themes using interactive charts.
+- **📥 Flexible Feedback Ingestion**: 
+  - Manual single-entry form with auto-AI sentiment tagging.
+  - Bulk CSV import for migrating historical data.
+  - Public feedback widget simulation for real-time data capture.
+- **🤖 Ask LOOP (AI Chat)**: Natural language query interface to ask questions like *"Show me negative feedback about billing"* and get instant, data-backed answers.
+- **🏷️ AI Themes Engine**: Automatic categorization of feedback into trending topics (e.g., UI/UX, Billing, Performance) with confidence scoring.
+- **📈 Comprehensive Reports**: Pre-built, filterable reports (7/30/90 days) with one-click CSV export for stakeholder sharing.
+- **✨ Premium UI/UX**: Dark-mode optimized, responsive design with smooth toast notifications for seamless user experience.
 
-*   **👥 Multi-Tenant Workspaces**: Complete isolation of tenant data with role-based access control (RBAC) across three roles:
-    *   **Admin**: Manage members, roles, and configure workspaces.
-    *   **Analyst**: Ingest single or bulk (CSV) feedback and triage records.
-    *   **Viewer**: Read-only access to feedback, trends, and reports.
-*   **📥 Feedback Ingestion**: Add feedback manually, bulk-import via CSV, or trigger simulated channel sources (mock integrations).
-*   **🤖 AI Auto-Classification**: Automatically tag sentiment, classify score (-1 to 1), detect themes, and extract feature areas on ingest.
-*   **📊 Analytics Dashboard**: Recharts-driven visual insights detailing feedback volume over time, sentiment distribution, and top themes.
-*   **🔍 Ask LOOP (Grounded Q&A)**: Semantic vector search using embeddings combined with Claude AI to answer plain-English questions grounded *only* in customer feedback.
-*   **📄 Voice of the Customer (VoC) Reports**: Generate scheduled or one-click summaries of top themes, sentiment shifts, notable quotes, and recommended product actions.
+## 🛠️ Tech Stack
 
----
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: PostgreSQL (Hosted on Neon.tech)
+- **ORM**: Prisma
+- **Authentication**: NextAuth.js (Credentials Provider)
+- **Charts**: Recharts
+- **Notifications**: Sonner
+- **CSV Parsing**: PapaParse
 
-## 🛠️ Technology Stack
+## ⚙️ Local Setup Instructions
 
-| Layer | Technology | Description |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 14/15 (App Router) + TypeScript | Full-stack architecture, React Server Components. |
-| **Styling** | Tailwind CSS | Utility-first responsive design. |
-| **Database** | PostgreSQL | Multi-tenant relational storage. |
-| **ORM** | Prisma | Type-safe schema definition and query builder. |
-| **Auth** | NextAuth / Auth.js | Role-based session handling and route protection. |
-| **AI Engine** | Anthropic Claude API | Claude-3-5-sonnet for classification & summaries. |
-| **Search/Embeddings**| pgvector / pg_vector | Semantic retrieval for RAG. |
-| **Charts** | Recharts | Rich, interactive dashboard visualisations. |
-| **Validation** | Zod | Schema-based validation at API boundaries. |
-| **Deployment** | Vercel | Scalable frontend and API server hosting. |
+Follow these steps to run the project locally:
 
----
-
-## 🗺️ System Architecture
-
-Project LOOP follows a secure **three-tier architecture**:
-
-```mermaid
-graph TD
-  A[Browser Client - React] -->|Calls API routes with Session Cookie| B[Next.js API Route Handlers]
-  B -->|Validates input via Zod / Checks Role| B
-  B -->|Queries scoped by workspaceId| C[(PostgreSQL Database via Prisma)]
-  B -->|Server-side fetch| D[Anthropic Claude API]
-  B -->|Vector similarity search| E[pgvector Embeddings]
-```
-
-> [!IMPORTANT]
-> **Non-negotiable Security Rule**: All queries accessing feedback, themes, reports, or users must be filtered by the authenticated user's `workspaceId`. Data leaks across tenants are strictly prevented.
-
----
-
-## 📁 Repository Structure
-
-```
-loop/
- ├── app/
- │   ├── (auth)/             # Login, signup authentication pages
- │   ├── (app)/              # Dashboard, inbox, trends, ask, reports, settings
- │   └── api/                # Route handlers (auth, feedback, themes, insights, reports)
- ├── components/             # Reusable UI components (tables, charts, forms)
- ├── lib/                    # Core utilities and service classes
- │   ├── ai.ts               # Anthropic Claude API integration
- │   ├── search.ts           # Vector embedding & search logic
- │   ├── auth.ts             # Auth session & RBAC guards
- │   └── db.ts               # Prisma Client singleton
- ├── prisma/
- │   ├── schema.prisma       # Prisma DB schemas & relations
- │   └── seed.ts             # Database seeding script (120+ feedback items)
- ├── public/                 # Static assets
- ├── README.md               # Project documentation
- └── .env.example            # Environment variables template
-```
-
----
-
-## 💻 Local Setup & Installation
-
-### Prerequisites
-
-*   Node.js 18 LTS or newer
-*   PostgreSQL database (Neon.tech or Supabase recommended)
-*   Anthropic API Key
-
-### Step-by-Step Guide
-
-1.  **Clone the repository and install dependencies:**
-    ```bash
-    git clone <your-repo-url>
-    cd AI-Customer-Feedback-Platform
-    npm install
-    ```
-
-2.  **Configure environment variables:**
-    Create a `.env` file in the root directory:
-    ```bash
-    cp .env.example .env
-    ```
-    Populate the variables:
-    *   `DATABASE_URL`: Your PostgreSQL connection string.
-    *   `NEXTAUTH_SECRET`: Secret key for session signing (generate with `openssl rand -base64 32`).
-    *   `ANTHROPIC_API_KEY`: Your Anthropic API key.
-
-3.  **Run migrations and seed the database:**
-    Initialize the DB schema and seed 120+ test feedback entries across channels and tenants:
-    ```bash
-    npx prisma migrate dev --name init
-    npm run seed
-    ```
-
-4.  **Start the development server:**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000) to see your app running.
-
----
-
-## 🔑 Demo Credentials
-
-Once the seed script has run, use the following accounts to test the role-based access control (RBAC):
-
-*   **Admin Role**: `admin@loop.com` / `Password123`
-*   **Analyst Role**: `analyst@loop.com` / `Password123`
-*   **Viewer Role**: `viewer@loop.com` / `Password123`
-
----
-
-## 📜 Development Timeline
-
-*   **Week 1**: Foundation & Data Layer (Auth, Roles, Database, Basic Ingestion).
-*   **Week 2**: Core Application (Bulk Import, Inbox with Filters, Recharts Dashboard).
-*   **Week 3**: AI Integration (Claude-based classification, theme clustering, semantic Q&A RAG).
-*   **Week 4**: Intelligence & Production Polish (VoC reports, export/PDF, UI polishing, README).
+1. **Clone the repository**:
+   ```bash
+   git clone <your-repo-url>
+   cd AI_Customer_Feedback_Platform
