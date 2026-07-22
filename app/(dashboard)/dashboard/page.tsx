@@ -19,23 +19,26 @@ const COLORS = { POSITIVE: "#22c55e", NEUTRAL: "#a1a1aa", NEGATIVE: "#ef4444" };
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [timePeriod, setTimePeriod] = useState("30");
+  const [channel, setChannel] = useState("ALL");
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`/api/dashboard/stats?days=${timePeriod}&channel=${channel}`);
+      if (res.ok) {
+        const jsonData = await res.json();
+        setData(jsonData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("/api/dashboard/stats");
-        if (res.ok) {
-          const jsonData = await res.json();
-          setData(jsonData);
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [timePeriod, channel]);
 
   if (isLoading) {
     return (
@@ -50,9 +53,50 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Analytics Dashboard</h1>
-        <p className="text-sm text-zinc-400">Overview of your customer feedback intelligence.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Analytics Dashboard</h1>
+          <p className="text-sm text-zinc-400">Overview of your customer feedback intelligence.</p>
+        </div>
+        
+        <div className="flex gap-3">
+          <div>
+            <select
+              aria-label="Filter by time period"
+              value={timePeriod}
+              onChange={(e) => {
+                setIsLoading(true);
+                setTimePeriod(e.target.value);
+              }}
+              className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
+            >
+              <option value="7" className="bg-zinc-900">Last 7 Days</option>
+              <option value="30" className="bg-zinc-900">Last 30 Days</option>
+              <option value="90" className="bg-zinc-900">Last 90 Days</option>
+              <option value="ALL" className="bg-zinc-900">All Time</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              aria-label="Filter by feedback channel"
+              value={channel}
+              onChange={(e) => {
+                setIsLoading(true);
+                setChannel(e.target.value);
+              }}
+              className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
+            >
+              <option value="ALL" className="bg-zinc-900">All Channels</option>
+              <option value="SUPPORT_TICKET" className="bg-zinc-900">Support Ticket</option>
+              <option value="APP_STORE" className="bg-zinc-900">App Store Review</option>
+              <option value="NPS_SURVEY" className="bg-zinc-900">NPS Survey</option>
+              <option value="SALES_CALL" className="bg-zinc-900">Sales Call Note</option>
+              <option value="COMMUNITY" className="bg-zinc-900">Community Post</option>
+              <option value="OTHER" className="bg-zinc-900">Other</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* 1. Stat Cards */}
