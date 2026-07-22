@@ -1,5 +1,6 @@
 // prisma/seed.ts
-import { PrismaClient, Channel, Sentiment, Status, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { Channel, Sentiment, Status, Role } from '../types';
 
 const prisma = new PrismaClient();
 

@@ -1,48 +1,77 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient, Sentiment, Status } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { Sentiment, Status } from "@/types";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const daysParam = searchParams.get("days"); // "7", "30", "90", "ALL"
+  const channel = searchParams.get("channel") || "ALL";
+
   const workspaceId = session.user.workspaceId;
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // Calculate dynamic date filter
+  let dateFilter: Date | null = null;
+  if (daysParam && daysParam !== "ALL") {
+    const days = parseInt(daysParam);
+    if (!isNaN(days)) {
+      dateFilter = new Date();
+      dateFilter.setDate(dateFilter.getDate() - days);
+    }
+  } else if (!daysParam) {
+    // Default to last 30 days if not specified (legacy behavior)
+    dateFilter = new Date();
+    dateFilter.setDate(dateFilter.getDate() - 30);
+  }
+
+  // Common filters
+  const baseWhere: any = { workspaceId };
+  if (dateFilter) {
+    baseWhere.createdAt = { gte: dateFilter };
+  }
+  if (channel && channel !== "ALL") {
+    baseWhere.channel = channel;
+  }
 
   try {
     // 1. Basic Stats
-    const totalFeedbacks = await prisma.feedback.count({ where: { workspaceId } });
-    const negativeFeedbacks = await prisma.feedback.count({ 
-      where: { workspaceId, sentiment: Sentiment.NEGATIVE } 
-    });
-    const newThisWeek = await prisma.feedback.count({
-      where: { 
-        workspaceId, 
-        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } 
-      }
-    });
-    const actionedFeedbacks = await prisma.feedback.count({
-      where: { workspaceId, status: Status.ACTIONED }
-    });
+    const totalFeedbacks = await prisma.feedback.count({ where: baseWhere });
+    
+    const negativeWhere = { ...baseWhere, sentiment: Sentiment.NEGATIVE };
+    const negativeFeedbacks = await prisma.feedback.count({ where: negativeWhere });
+    
+    const newThisWeekWhere: any = {
+      workspaceId,
+      createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+    };
+    if (channel && channel !== "ALL") {
+      newThisWeekWhere.channel = channel;
+    }
+    const newThisWeek = await prisma.feedback.count({ where: newThisWeekWhere });
+    
+    const actionedWhere = { ...baseWhere, status: Status.ACTIONED };
+    const actionedFeedbacks = await prisma.feedback.count({ where: actionedWhere });
     const actionRate = totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
 
     // 2. Sentiment Breakdown
     const sentimentData = await prisma.feedback.groupBy({
       by: ["sentiment"],
-      where: { workspaceId },
+      where: baseWhere,
       _count: { sentiment: true }
     });
 
-    // 3. Volume Over Time (Last 30 Days)
+    // 3. Volume Over Time
     const recentFeedbacks = await prisma.feedback.findMany({
-      where: { workspaceId, createdAt: { gte: thirtyDaysAgo } },
+      where: baseWhere,
       select: { createdAt: true },
       orderBy: { createdAt: "asc" }
     });
@@ -59,33 +88,57 @@ export async function GET() {
       count
     }));
 
-    // 4. Top Themes
+    // 4. Top Themes (Filtered dynamically by date & channel)
     const themeData = await prisma.theme.findMany({
       where: { workspaceId },
       include: {
-        _count: { select: { feedbacks: true } }
-      },
-      orderBy: {
-        feedbacks: { _count: "desc" }
-      },
-      take: 5
+        feedbacks: {
+          include: {
+            feedback: true
+          }
+        }
+      }
     });
 
-    const topThemes = themeData.map(t => ({
-      name: t.name,
-      count: t._count.feedbacks,
-      color: t.color
-    }));
+    const topThemes = themeData.map(t => {
+      const filteredFeedbacks = t.feedbacks.filter(ft => {
+        if (!ft.feedback) return false;
+        const matchesDate = dateFilter ? ft.feedback.createdAt >= dateFilter : true;
+        const matchesChannel = (channel && channel !== "ALL") ? ft.feedback.channel === channel : true;
+        return matchesDate && matchesChannel;
+      });
+      return {
+        name: t.name,
+        count: filteredFeedbacks.length,
+        color: t.color
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+    // Format sentiment data to include missing types if zero
+    const sentimentResponse = [
+      { name: "POSITIVE", value: 0 },
+      { name: "NEUTRAL", value: 0 },
+      { name: "NEGATIVE", value: 0 }
+    ];
+
+    sentimentData.forEach(s => {
+      const idx = sentimentResponse.findIndex(r => r.name === s.sentiment);
+      if (idx !== -1) {
+        sentimentResponse[idx].value = s._count.sentiment;
+      }
+    });
 
     return NextResponse.json({
       stats: { totalFeedbacks, negativeFeedbacks, newThisWeek, actionRate },
-      sentiment: sentimentData.map(s => ({ name: s.sentiment, value: s._count.sentiment })),
+      sentiment: sentimentResponse,
       volume: volumeChartData,
       themes: topThemes
     });
 
   } catch (error) {
     console.error("Dashboard stats error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 }); // 👈 Bas "9." hata diya
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

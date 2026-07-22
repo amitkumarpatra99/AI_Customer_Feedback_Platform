@@ -43,11 +43,11 @@ export async function POST(request: Request) {
     
     if (matchedThemes.length > 0) {
       whereClause.OR = matchedThemes.map((theme: string) => ({
-        content: { contains: theme, mode: "insensitive" }
+        content: { contains: theme }
       }));
     } else {
       // Agar koi specific keyword nahi mila, toh pure query se search karo
-      whereClause.content = { contains: query, mode: "insensitive" };
+      whereClause.content = { contains: query };
     }
 
     const matchingFeedbacks = await prisma.feedback.findMany({
