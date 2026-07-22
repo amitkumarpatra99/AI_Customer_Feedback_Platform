@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Plus, X, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation"; // ✅ Router import kiya
+import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // 👈 Sonner import kiya
 
 interface Feedback {
   id: string;
@@ -16,19 +17,17 @@ interface Feedback {
 }
 
 export default function InboxPage() {
-  const router = useRouter(); // ✅ Router ko component ke ANDAR move kiya (Zaroori fix)
+  const router = useRouter();
   const { data: session } = useSession(); 
   
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ search: "", sentiment: "ALL", status: "ALL" });
   
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Page load hone par data fetch karo
   useEffect(() => {
     fetchFeedbacks();
   }, [filters]);
@@ -54,7 +53,6 @@ export default function InboxPage() {
     }
   };
 
-  // Manual Add Feedback Handler
   const handleAddFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -69,21 +67,23 @@ export default function InboxPage() {
       if (res.ok) {
         setIsModalOpen(false);
         setFormData({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
-        fetchFeedbacks(); // List refresh karo
+        fetchFeedbacks();
+        toast.success("Feedback added successfully!"); // 👈 Alert ki jagah Toast
       } else {
-        alert("Failed to add feedback");
+        toast.error("Failed to add feedback. Please try again."); // 👈 Alert ki jagah Toast
       }
     } catch (error) {
       console.error("Error adding feedback", error);
+      toast.error("Network error. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const getStatusColor = (status: string) => {
-    if (status === "NEW") return "bg-blue-500/15 text-blue-400 border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.2)]";
-    if (status === "REVIEWED") return "bg-amber-500/15 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]";
-    return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]"; // ACTIONED
+    if (status === "NEW") return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+    if (status === "REVIEWED") return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+    return "bg-green-500/10 text-green-500 border-green-500/20"; // ACTIONED
   };
 
   const getSentimentColor = (sentiment: string) => {
@@ -92,20 +92,18 @@ export default function InboxPage() {
     return "text-zinc-400";
   };
 
-  // Check if user is Viewer (Viewer cannot add or import feedback)
   const isViewer = session?.user?.role === "VIEWER";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header & Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Feedback Inbox</h1>
           <p className="text-sm text-zinc-400">Manage and review customer feedback in real-time.</p>
         </div>
         
         <div className="flex gap-3">
-          {/* CSV Import Button (Sirf Admin/Analyst ke liye) */}
           {!isViewer && (
             <>
               <input
@@ -117,20 +115,20 @@ export default function InboxPage() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   
-                  const formData = new FormData();
-                  formData.append("file", file);
+                  const formDataUpload = new FormData();
+                  formDataUpload.append("file", file);
                   
                   const res = await fetch("/api/feedback/import", {
                     method: "POST",
-                    body: formData,
+                    body: formDataUpload,
                   });
                   
                   if (res.ok) {
                     const data = await res.json();
-                    alert(data.message);
-                    fetchFeedbacks(); // List refresh karo
+                    toast.success(data.message); // 👈 Alert ki jagah Toast
+                    fetchFeedbacks();
                   } else {
-                    alert("Failed to import CSV");
+                    toast.error("Failed to import CSV. Check file format."); // 👈 Alert ki jagah Toast
                   }
                 }}
               />
@@ -143,7 +141,6 @@ export default function InboxPage() {
             </>
           )}
 
-          {/* Manual Add Button (Sirf Admin/Analyst ke liye) */}
           {!isViewer && (
             <button
               onClick={() => setIsModalOpen(true)}
@@ -155,7 +152,6 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Filters Section */}
       <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -191,8 +187,8 @@ export default function InboxPage() {
         </select>
       </div>
 
-      {/* Feedback Table (Glass Table) */}
-      <div className="glass-panel rounded-2xl overflow-hidden">
+      {/* Feedback Table */}
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
@@ -214,7 +210,12 @@ export default function InboxPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {feedbacks.map((feedback) => (
-                  <tr key={feedback.id} className="hover:bg-white/[0.06] transition-colors cursor-pointer">
+                  // ✅ Yahan onClick add kiya hai taaki row par click karne se detail page khule
+                  <tr 
+                    key={feedback.id} 
+                    onClick={() => router.push(`/inbox/${feedback.id}`)}
+                    className="hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-bold tracking-wide ${getStatusColor(feedback.status)}`}>
                         {feedback.status}
@@ -247,7 +248,7 @@ export default function InboxPage() {
         )}
       </div>
 
-      {/* Add Feedback Modal (Glass Popup) */}
+      {/* Add Feedback Modal (Popup) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="glass-panel relative w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-white/15">
