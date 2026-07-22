@@ -1,37 +1,51 @@
 "use client";
 
 import React, { useState } from "react";
-import { HelpCircle, Send, BookOpen } from "lucide-react";
+import { HelpCircle, Send, BookOpen, Loader2, AlertCircle } from "lucide-react";
+
+// 1. Define strict types for your data structures
+interface InsightSource {
+  id: string | number;
+  channel: string;
+  content: string;
+}
 
 export default function AskLoopPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
-  const [sources, setSources] = useState<any[]>([]);
+  const [sources, setSources] = useState<InsightSource[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // 2. Add a dedicated error state
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion) return;
 
     setLoading(true);
     setAnswer(null);
     setSources([]);
+    setError(null);
+
     try {
       const res = await fetch("/api/insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: trimmedQuestion }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setAnswer(data.answer);
-        setSources(data.contextUsed || []);
-      } else {
-        setAnswer("Failed to synthesize response. Please try again later.");
+      
+      if (!res.ok) {
+        throw new Error("Failed to synthesize response.");
       }
+      
+      const data = await res.json();
+      setAnswer(data.answer);
+      setSources(data.contextUsed || []);
     } catch (err) {
-      console.error("Ask AI error", err);
-      setAnswer("Network error. Could not connect to LOOP AI services.");
+      console.error("Ask AI error:", err);
+      setError("We couldn't connect to LOOP AI services. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -55,46 +69,71 @@ export default function AskLoopPage() {
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
+          aria-label="Question about customer feedback"
           placeholder="e.g., What are users saying about the onboarding process?"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          className="glass-input flex-1 rounded-2xl px-5 py-3.5 text-sm placeholder-zinc-500"
+          disabled={loading}
+          className="glass-input flex-1 rounded-2xl px-5 py-3.5 text-sm placeholder-zinc-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
         />
         <button
           type="submit"
-          disabled={loading}
-          className="glass-button rounded-2xl px-7 py-3.5 font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          disabled={loading || !question.trim()}
+          className="glass-button rounded-2xl px-7 py-3.5 font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          {loading ? "Thinking..." : "Ask AI"} <Send className="w-4 h-4" />
+          {loading ? (
+            <>
+              Thinking... <Loader2 className="w-4 h-4 animate-spin" />
+            </>
+          ) : (
+            <>
+              Ask AI <Send className="w-4 h-4" />
+            </>
+          )}
         </button>
       </form>
 
-      {/* Answer & Sources Panel */}
+      {/* Error Panel */}
+      {error && (
+        <div className="glass-card rounded-2xl p-4 border-l-4 border-l-red-500 flex items-start gap-3 animate-fadeIn bg-red-500/5">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-200">{error}</p>
+        </div>
+      )}
+
+      {/* Answer & Sources Panel (aria-live ensures screen readers announce this on appearance) */}
       {answer && (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="space-y-6 animate-fadeIn" aria-live="polite">
           {/* Answer Card */}
           <div className="glass-card rounded-2xl p-6 space-y-3 border-l-4 border-l-blue-500 relative overflow-hidden">
             <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider">AI Generated Synthesis</h3>
-            <p className="text-sm text-zinc-100 leading-relaxed font-normal">{answer}</p>
+            {/* whitespace-pre-wrap ensures multi-paragraph AI responses format correctly */}
+            <p className="text-sm text-zinc-100 leading-relaxed font-normal whitespace-pre-wrap">
+              {answer}
+            </p>
           </div>
 
           {/* Sources Section */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-blue-400" /> Grounded Feedback Sources
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sources.map((src, index) => (
-                <div key={src.id} className="glass-card rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-blue-400 font-bold">Source #{index + 1}</span>
-                    <span className="glass-pill px-2 py-0.5 rounded text-[11px] font-mono text-zinc-400">{src.channel}</span>
+          {sources.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-blue-400" /> Grounded Feedback Sources
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {sources.map((src, index) => (
+                  <div key={src.id} className="glass-card rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-blue-400 font-bold">Source #{index + 1}</span>
+                      <span className="glass-pill px-2 py-0.5 rounded text-[11px] font-mono text-zinc-400">
+                        {src.channel}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300 italic leading-relaxed">"{src.content}"</p>
                   </div>
-                  <p className="text-xs text-zinc-300 italic leading-relaxed">"{src.content}"</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
