@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Plus, X, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation"; // ✅ Router import kiya
+import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // 👈 Sonner import kiya
 
 interface Feedback {
   id: string;
@@ -16,19 +17,17 @@ interface Feedback {
 }
 
 export default function InboxPage() {
-  const router = useRouter(); // ✅ Router ko component ke ANDAR move kiya (Zaroori fix)
+  const router = useRouter();
   const { data: session } = useSession(); 
   
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ search: "", sentiment: "ALL", status: "ALL" });
   
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Page load hone par data fetch karo
   useEffect(() => {
     fetchFeedbacks();
   }, [filters]);
@@ -54,7 +53,6 @@ export default function InboxPage() {
     }
   };
 
-  // Manual Add Feedback Handler
   const handleAddFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -69,12 +67,14 @@ export default function InboxPage() {
       if (res.ok) {
         setIsModalOpen(false);
         setFormData({ content: "", channel: "SUPPORT_TICKET", customerLabel: "" });
-        fetchFeedbacks(); // List refresh karo
+        fetchFeedbacks();
+        toast.success("Feedback added successfully!"); // 👈 Alert ki jagah Toast
       } else {
-        alert("Failed to add feedback");
+        toast.error("Failed to add feedback. Please try again."); // 👈 Alert ki jagah Toast
       }
     } catch (error) {
       console.error("Error adding feedback", error);
+      toast.error("Network error. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -83,7 +83,7 @@ export default function InboxPage() {
   const getStatusColor = (status: string) => {
     if (status === "NEW") return "bg-blue-500/10 text-blue-500 border-blue-500/20";
     if (status === "REVIEWED") return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
-    return "bg-green-500/10 text-green-500 border-green-500/20"; // ACTIONED
+    return "bg-green-500/10 text-green-500 border-green-500/20";
   };
 
   const getSentimentColor = (sentiment: string) => {
@@ -92,12 +92,10 @@ export default function InboxPage() {
     return "text-zinc-400";
   };
 
-  // Check if user is Viewer (Viewer cannot add or import feedback)
   const isViewer = session?.user?.role === "VIEWER";
 
   return (
     <div className="space-y-6">
-      {/* Header & Action Buttons */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Feedback Inbox</h1>
@@ -105,7 +103,6 @@ export default function InboxPage() {
         </div>
         
         <div className="flex gap-3">
-          {/* CSV Import Button (Sirf Admin/Analyst ke liye) */}
           {!isViewer && (
             <>
               <input
@@ -117,20 +114,20 @@ export default function InboxPage() {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   
-                  const formData = new FormData();
-                  formData.append("file", file);
+                  const formDataUpload = new FormData();
+                  formDataUpload.append("file", file);
                   
                   const res = await fetch("/api/feedback/import", {
                     method: "POST",
-                    body: formData,
+                    body: formDataUpload,
                   });
                   
                   if (res.ok) {
                     const data = await res.json();
-                    alert(data.message);
-                    fetchFeedbacks(); // List refresh karo
+                    toast.success(data.message); // 👈 Alert ki jagah Toast
+                    fetchFeedbacks();
                   } else {
-                    alert("Failed to import CSV");
+                    toast.error("Failed to import CSV. Check file format."); // 👈 Alert ki jagah Toast
                   }
                 }}
               />
@@ -143,7 +140,6 @@ export default function InboxPage() {
             </>
           )}
 
-          {/* Manual Add Button (Sirf Admin/Analyst ke liye) */}
           {!isViewer && (
             <button
               onClick={() => setIsModalOpen(true)}
@@ -155,7 +151,6 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Filters Section */}
       <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
@@ -191,7 +186,6 @@ export default function InboxPage() {
         </select>
       </div>
 
-      {/* Feedback Table */}
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
@@ -214,7 +208,6 @@ export default function InboxPage() {
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {feedbacks.map((feedback) => (
-                  // ✅ Yahan onClick add kiya hai taaki row par click karne se detail page khule
                   <tr 
                     key={feedback.id} 
                     onClick={() => router.push(`/inbox/${feedback.id}`)}
@@ -252,7 +245,6 @@ export default function InboxPage() {
         )}
       </div>
 
-      {/* Add Feedback Modal (Popup) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-xl">

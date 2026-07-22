@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, MessageSquare } from "lucide-react";
+import { Send, Loader2, Bot, User } from "lucide-react";
+import { toast } from "sonner"; // 👈 Sonner import kiya
 
 interface Message {
   id: string;
@@ -22,7 +23,6 @@ export default function AskLoopPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -56,6 +56,7 @@ export default function AskLoopPage() {
         throw new Error(data.error);
       }
     } catch (error) {
+      toast.error("AI failed to process query. Please try again."); // 👈 Error Toast
       setMessages((prev) => [
         ...prev,
         { id: (Date.now() + 1).toString(), role: "ai", text: "Sorry, I encountered an error. Please try again." },
@@ -80,7 +81,6 @@ export default function AskLoopPage() {
         <p className="text-sm text-zinc-400">Ask natural language questions about your customer feedback.</p>
       </div>
 
-      {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-2 mb-4 custom-scrollbar">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
@@ -97,7 +97,6 @@ export default function AskLoopPage() {
                 {msg.text}
               </div>
 
-              {/* Attached Feedbacks Cards */}
               {msg.feedbacks && msg.feedbacks.length > 0 && (
                 <div className="space-y-2 mt-2">
                   {msg.feedbacks.map((fb) => (
@@ -131,7 +130,6 @@ export default function AskLoopPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="relative">
         <input
           type="text"
