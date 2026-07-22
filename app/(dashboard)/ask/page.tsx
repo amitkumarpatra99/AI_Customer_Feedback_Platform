@@ -81,7 +81,6 @@ export default function AskLoopPage() {
         <p className="text-sm text-zinc-400">Ask natural language questions about your customer feedback.</p>
       </div>
 
-      {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-2 mb-4 custom-scrollbar">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
@@ -98,7 +97,6 @@ export default function AskLoopPage() {
                 {msg.text}
               </div>
 
-              {/* Attached Feedbacks Cards */}
               {msg.feedbacks && msg.feedbacks.length > 0 && (
                 <div className="space-y-2 mt-2">
                   {msg.feedbacks.map((fb) => (
@@ -132,52 +130,28 @@ export default function AskLoopPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="relative">
         <input
           type="text"
-          placeholder="e.g., What are users saying about the onboarding process?"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          className="glass-input flex-1 rounded-2xl px-5 py-3.5 text-sm placeholder-zinc-500"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          placeholder="Ask a question about your feedback..."
+          disabled={isLoading}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-900 py-4 pl-4 pr-14 text-sm text-zinc-100 placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
         />
         <button
-          type="submit"
-          disabled={loading}
-          className="glass-button rounded-2xl px-7 py-3.5 font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          onClick={handleSend}
+          disabled={isLoading || !input.trim()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? "Thinking..." : "Ask AI"} <Send className="w-4 h-4" />
+          <Send className="h-4 w-4" />
         </button>
-      </form>
-
-      {/* Answer & Sources Panel */}
-      {answer && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Answer Card */}
-          <div className="glass-card rounded-2xl p-6 space-y-3 border-l-4 border-l-blue-500 relative overflow-hidden">
-            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider">AI Generated Synthesis</h3>
-            <p className="text-sm text-zinc-100 leading-relaxed font-normal">{answer}</p>
-          </div>
-
-          {/* Sources Section */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-blue-400" /> Grounded Feedback Sources
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sources.map((src, index) => (
-                <div key={src.id} className="glass-card rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-blue-400 font-bold">Source #{index + 1}</span>
-                    <span className="glass-pill px-2 py-0.5 rounded text-[11px] font-mono text-zinc-400">{src.channel}</span>
-                  </div>
-                  <p className="text-xs text-zinc-300 italic leading-relaxed">"{src.content}"</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
+      
+      <p className="text-center text-xs text-zinc-600 mt-3">
+        LOOP AI can make mistakes. Verify important insights in the Inbox.
+      </p>
     </div>
   );
 }
