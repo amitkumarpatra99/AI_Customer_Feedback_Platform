@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // <-- Ye line add karo
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -84,7 +83,7 @@ model Feedback {
   workspace      Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   
   themes         FeedbackTheme[]
-  embedding      Embedding?
+  // embedding      Embedding?
 
   // Indexes for fast filtering
   @@index([workspaceId, status])
@@ -153,17 +152,17 @@ model FeedbackTheme {
 }
 
 // ============================================
-// EMBEDDING (For Ask LOOP semantic search)
+// EMBEDDING (For Ask LOOP semantic search) - Commented out for SQLite compatibility
 // ============================================
-model Embedding {
-  id         String   @id @default(cuid())
-  feedbackId String   @unique
-  vector     Unsupported("vector(1536)") // pgvector type for OpenAI/Claude embeddings
-  
-  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-
-  @@map("embeddings")
-}
+// model Embedding {
+//   id         String   @id @default(cuid())
+//   feedbackId String   @unique
+//   vector     Unsupported("vector(1536)")
+//   
+//   feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+// 
+//   @@map("embeddings")
+// }
 
 // ============================================
 // REPORT (Voice-of-Customer reports)
