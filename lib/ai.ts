@@ -12,9 +12,7 @@ export interface ClassificationResult {
   rationale: string;
 }
 
-/**
- * Classifies a customer feedback text using Claude.
- */
+
 export async function classifyFeedback(
   content: string,
   existingThemes: string[]
