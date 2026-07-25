@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { 
@@ -38,6 +38,15 @@ interface ReportData {
 
 const COLORS = ["#3b82f6", "#10b981", "#ef4444", "#f59e0b", "#8b5cf6"];
 
+const getInitialReportDates = () => {
+  const end = new Date();
+  const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return {
+    startDate: start.toISOString().split("T")[0],
+    endDate: end.toISOString().split("T")[0],
+  };
+};
+
 export default function ReportsPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -49,11 +58,10 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [isLoadingVoc, setIsLoadingVoc] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     title: "",
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
-  });
+    ...getInitialReportDates(),
+  }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vocError, setVocError] = useState("");
 
@@ -63,7 +71,9 @@ export default function ReportsPage() {
   const [days, setDays] = useState(30);
 
   // Fetch VOC Reports
-  const fetchVocReports = async () => {
+  const fetchVocReports = useCallback(async () => {
+    // Defer state updates to avoid synchronous setState inside useEffect
+    await Promise.resolve();
     setIsLoadingVoc(true);
     try {
       const res = await fetch("/api/reports");
@@ -76,10 +86,12 @@ export default function ReportsPage() {
     } finally {
       setIsLoadingVoc(false);
     }
-  };
+  }, []);
 
   // Fetch Analytics Charts Data
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
+    // Defer state updates to avoid synchronous setState inside useEffect
+    await Promise.resolve();
     setIsLoadingAnalytics(true);
     try {
       const res = await fetch(`/api/reports?charts=true&days=${days}`);
@@ -92,15 +104,17 @@ export default function ReportsPage() {
     } finally {
       setIsLoadingAnalytics(false);
     }
-  };
+  }, [days]);
 
   useEffect(() => {
-    if (activeTab === "VOC") {
-      fetchVocReports();
-    } else {
-      fetchAnalyticsData();
-    }
-  }, [activeTab, days]);
+    Promise.resolve().then(() => {
+      if (activeTab === "VOC") {
+        fetchVocReports();
+      } else {
+        fetchAnalyticsData();
+      }
+    });
+  }, [activeTab, fetchVocReports, fetchAnalyticsData]);
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +145,7 @@ export default function ReportsPage() {
         const data = await res.json();
         setVocError(data.error || "Failed to generate VoC Report");
       }
-    } catch (err) {
+    } catch {
       setVocError("Server connection failure");
     } finally {
       setIsSubmitting(false);
@@ -187,7 +201,7 @@ export default function ReportsPage() {
     try {
       const parsed = JSON.parse(report.contentJson);
       return parsed.stats || { totalItems: 0, positive: 0, neutral: 0, negative: 0 };
-    } catch (e) {
+    } catch {
       return { totalItems: 0, positive: 0, neutral: 0, negative: 0 };
     }
   };

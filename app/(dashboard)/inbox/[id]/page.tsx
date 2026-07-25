@@ -33,7 +33,7 @@ export default function FeedbackDetailPage() {
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Content</h3>
           <div className="bg-white/[0.03] rounded-xl p-4 border border-white/10 text-sm text-zinc-200 leading-relaxed">
-            "The app experience has improved significantly with the new glass interface. However, exports still take a few seconds."
+            &quot;The app experience has improved significantly with the new glass interface. However, exports still take a few seconds.&quot;
           </div>
         </div>
 
