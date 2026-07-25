@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { UserPlus, Shield, User, Eye } from "lucide-react";
 
 interface User {
@@ -19,24 +19,26 @@ export default function TeamManagementPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Page load hone par users fetch karo
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/users");
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
       }
-    } catch (err) {
+    } catch {
       console.error("Failed to fetch users");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Page load hone par users fetch karo
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchUsers();
+    });
+  }, [fetchUsers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

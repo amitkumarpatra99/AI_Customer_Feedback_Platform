@@ -30,7 +30,7 @@ export async function GET(
     }
 
     return NextResponse.json(feedback);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
   }
 }

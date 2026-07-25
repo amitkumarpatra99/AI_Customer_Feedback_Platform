@@ -98,7 +98,7 @@ export async function GET(request: Request) {
   const whereClause: any = { workspaceId };
 
   if (search) {
-    whereClause.content = { contains: search, mode: "insensitive" };
+    whereClause.content = { contains: search };
   }
   if (sentiment && sentiment !== "ALL") {
     whereClause.sentiment = sentiment;

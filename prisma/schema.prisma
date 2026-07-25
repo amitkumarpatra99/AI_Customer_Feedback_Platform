@@ -36,7 +36,7 @@ model User {
   name          String
   email         String   @unique
   passwordHash  String
-  role          Role     @default(VIEWER)
+  role          String   @default("VIEWER")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -49,11 +49,11 @@ model User {
   @@map("users")
 }
 
-enum Role {
-  ADMIN
-  ANALYST
-  VIEWER
-}
+// enum Role {
+//   ADMIN
+//   ANALYST
+//   VIEWER
+// }
 
 // ============================================
 // FEEDBACK (Customer feedback items)
@@ -61,18 +61,18 @@ enum Role {
 model Feedback {
   id             String     @id @default(cuid())
   content        String     // The actual feedback text
-  channel        Channel    // Source: SUPPORT, APP_STORE, etc.
+  channel        String     // Source: SUPPORT, APP_STORE, etc.
   sourceRef      String?    // External reference (e.g., ticket ID)
   customerLabel  String?    // e.g., "Enterprise", "Free Tier"
   
   // AI Classification
-  sentiment      Sentiment  @default(NEUTRAL)
+  sentiment      String     @default("NEUTRAL")
   sentimentScore Float      @default(0.0) // -1.0 to 1.0
   featureArea    String?    // e.g., "Checkout", "Onboarding"
   aiRationale    String?    // Why AI classified it this way
   
   // Workflow
-  status         Status     @default(NEW)
+  status         String     @default("NEW")
   
   // Timestamps
   createdAt      DateTime   @default(now())
@@ -93,26 +93,26 @@ model Feedback {
   @@map("feedbacks")
 }
 
-enum Channel {
-  SUPPORT_TICKET
-  APP_STORE
-  NPS_SURVEY
-  SALES_CALL
-  COMMUNITY
-  OTHER
-}
+// enum Channel {
+//   SUPPORT_TICKET
+//   APP_STORE
+//   NPS_SURVEY
+//   SALES_CALL
+//   COMMUNITY
+//   OTHER
+// }
 
-enum Sentiment {
-  POSITIVE
-  NEUTRAL
-  NEGATIVE
-}
+// enum Sentiment {
+//   POSITIVE
+//   NEUTRAL
+//   NEGATIVE
+// }
 
-enum Status {
-  NEW
-  REVIEWED
-  ACTIONED
-}
+// enum Status {
+//   NEW
+//   REVIEWED
+//   ACTIONED
+// }
 
 // ============================================
 // THEME (AI-discovered topics/categories)
@@ -172,7 +172,7 @@ model Report {
   title       String
   periodStart DateTime
   periodEnd   DateTime
-  contentJson Json     // AI-generated report content (structured)
+  contentJson String     // AI-generated report content (structured)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

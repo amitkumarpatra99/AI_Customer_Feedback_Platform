@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient, Sentiment, Channel, Status } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { Sentiment, Channel, Status } from "@/types";
 import Papa from "papaparse";
 
 const prisma = new PrismaClient();

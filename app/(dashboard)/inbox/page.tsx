@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Search, Plus, X, Loader2, Trash2, CheckSquare, Square, Download, CheckCircle, Info } from "lucide-react";
+import { Search, Plus, X, Loader2, Trash2, CheckSquare, Square, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface Feedback {
@@ -73,7 +73,7 @@ function InboxContent() {
         const res = await fetch("/api/themes");
         if (res.ok) {
           const themesData = await res.json();
-          setThemesList(themesData.map((t: any) => t.name));
+          setThemesList(themesData.map((t: { name: string }) => t.name));
         }
       } catch (err) {
         console.error("Failed to load themes for filtering", err);
@@ -82,20 +82,9 @@ function InboxContent() {
     fetchThemes();
   }, []);
 
-  // Update theme filter if URL param changes
-  useEffect(() => {
-    if (themeParam) {
-      setFilters(prev => ({ ...prev, theme: themeParam }));
-    }
-  }, [themeParam]);
-
-  // Fetch feedbacks list based on filters
-  useEffect(() => {
-    fetchFeedbacks();
-    setSelectedIds([]); // Clear selection when filters change
-  }, [filters]);
-
-  const fetchFeedbacks = async () => {
+  const fetchFeedbacks = useCallback(async () => {
+    // Defer state updates to avoid synchronous setState warning inside useEffect
+    await Promise.resolve();
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -115,7 +104,27 @@ function InboxContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters]);
+
+  // Update theme filter if URL param changes
+  useEffect(() => {
+    if (themeParam) {
+      Promise.resolve().then(() => {
+        setFilters(prev => ({ ...prev, theme: themeParam }));
+      });
+    }
+  }, [themeParam]);
+
+  // Fetch feedbacks list based on filters
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchFeedbacks();
+    });
+    // Defer state updates to avoid synchronous setState warning
+    Promise.resolve().then(() => {
+      setSelectedIds([]);
+    });
+  }, [filters, fetchFeedbacks]);
 
   // Manual Add Feedback Handler
   const handleAddFeedback = async (e: React.FormEvent) => {
@@ -210,11 +219,11 @@ function InboxContent() {
       } else {
         toast.error("Failed to perform bulk status update");
       }
-    } catch (err) {
-      toast.error("Network error during bulk action");
-    } finally {
-      setIsBulkProcessing(false);
-    }
+     } catch {
+       toast.error("Network error during bulk action");
+     } finally {
+       setIsBulkProcessing(false);
+     }
   };
 
   const handleBulkDelete = async () => {
@@ -233,14 +242,13 @@ function InboxContent() {
       } else {
         toast.error("Failed to perform bulk deletion");
       }
-    } catch (err) {
-      toast.error("Network error during bulk deletion");
-    } finally {
-      setIsBulkProcessing(false);
-    }
+     } catch {
+       toast.error("Network error during bulk deletion");
+     } finally {
+       setIsBulkProcessing(false);
+     }
   };
 
-  // CSV Export Handler
   const handleExportCSV = () => {
     if (feedbacks.length === 0) {
       toast.error("No feedback items to export.");
@@ -685,7 +693,7 @@ function InboxContent() {
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Customer Verbatim</label>
                 <p className="text-zinc-100 text-sm leading-relaxed font-light whitespace-pre-wrap">
-                  "{selectedFeedback.content}"
+                  &quot;{selectedFeedback.content}&quot;
                 </p>
               </div>
 
@@ -741,7 +749,7 @@ function InboxContent() {
                 {selectedFeedback.aiRationale && (
                   <div className="border-t border-white/5 pt-3">
                     <span className="block text-[10px] font-semibold text-zinc-400 mb-1">AI Rationale Explanation</span>
-                    <p className="text-xs text-zinc-300 leading-relaxed italic">"{selectedFeedback.aiRationale}"</p>
+                    <p className="text-xs text-zinc-300 leading-relaxed italic">&quot;{selectedFeedback.aiRationale}&quot;</p>
                   </div>
                 )}
               </div>

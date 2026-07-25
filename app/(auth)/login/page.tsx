@@ -152,7 +152,7 @@ export default function LoginPage() {
             Welcome to <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">LOOP AI</span>
           </h2>
           <p className="text-sm text-zinc-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-4 decoration-blue-500/30">
               Sign up here
             </Link>

@@ -29,8 +29,7 @@ export async function findSimilarFeedback(
     where: {
       workspaceId: workspaceId,
       content: {
-        contains: query,
-        mode: "insensitive"
+        contains: query
       }
     },
     take: limit

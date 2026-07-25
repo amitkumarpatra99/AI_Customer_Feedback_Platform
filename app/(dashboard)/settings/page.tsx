@@ -35,8 +35,8 @@ export default function SettingsPage() {
     fetchMembers();
   }, []);
 
-  const workspaceName = (session?.user as any)?.workspaceName || "Acme Corp Demo";
-  const workspaceId = (session?.user as any)?.workspaceId || "workspace_loading...";
+  const workspaceName = session?.user?.workspaceName || "Acme Corp Demo";
+  const workspaceId = session?.user?.workspaceId || "workspace_loading...";
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
