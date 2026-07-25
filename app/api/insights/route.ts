@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         sentiment: item.sentiment
       }))
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("API POST insights error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

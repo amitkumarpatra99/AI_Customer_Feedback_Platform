@@ -12,11 +12,15 @@ export default function WorkspaceSettingsPage() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (session?.user?.workspaceName) {
-      setWorkspaceName(session.user.workspaceName);
+  const sessionWorkspaceName = session?.user?.workspaceName;
+  const [prevSessionWorkspace, setPrevSessionWorkspace] = useState<string | undefined>(undefined);
+  
+  if (sessionWorkspaceName !== prevSessionWorkspace) {
+    setPrevSessionWorkspace(sessionWorkspaceName);
+    if (sessionWorkspaceName) {
+      setWorkspaceName(sessionWorkspaceName);
     }
-  }, [session]);
+  }
 
   // Redirect if not Admin
   useEffect(() => {
@@ -43,7 +47,7 @@ export default function WorkspaceSettingsPage() {
         const data = await res.json();
         toast.error(data.error || "Failed to update workspace.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Network error. Please try again.");
     } finally {
       setIsLoading(false);

@@ -17,6 +17,8 @@ const PRESETS = [
   { label: "🌙 Requests for dark mode setting", query: "Is anyone asking for a dark mode?" }
 ];
 
+const generateMessageId = (offset = 0) => (Date.now() + offset).toString();
+
 export default function AskLoopPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -37,7 +39,7 @@ export default function AskLoopPage() {
     const textToSend = queryToSend || input;
     if (!textToSend.trim() || isLoading) return;
 
-    const userMessage: Message = { id: Date.now().toString(), role: "user", text: textToSend };
+    const userMessage: Message = { id: generateMessageId(), role: "user", text: textToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -53,7 +55,7 @@ export default function AskLoopPage() {
 
       if (res.ok) {
         const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: generateMessageId(1),
           role: "ai",
           text: data.response,
           feedbacks: data.feedbacks,
@@ -62,11 +64,11 @@ export default function AskLoopPage() {
       } else {
         throw new Error(data.error);
       }
-    } catch (error) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { 
-          id: (Date.now() + 1).toString(), 
+          id: generateMessageId(2), 
           role: "ai", 
           text: "I encountered an error connecting to LOOP AI services. Please verify your query and try again." 
         },
@@ -127,7 +129,7 @@ export default function AskLoopPage() {
                   <div className="grid grid-cols-1 gap-2.5">
                     {msg.feedbacks.map((fb) => (
                       <div key={fb.id} className="glass-card rounded-xl p-3.5 border border-white/5 bg-zinc-950/40">
-                        <p className="text-xs text-zinc-300 italic leading-relaxed">"{fb.content}"</p>
+                        <p className="text-xs text-zinc-300 italic leading-relaxed">&quot;{fb.content}&quot;</p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${getSentimentColor(fb.sentiment)}`}>
                             {fb.sentiment}

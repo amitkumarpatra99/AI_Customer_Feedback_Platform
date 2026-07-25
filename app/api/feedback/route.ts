@@ -74,7 +74,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { Sentiment } from "@/types";
 
 const prisma = new PrismaClient();
 
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
   const theme = searchParams.get("theme") || "";
 
   // Dynamic WHERE clause banana (Multi-tenant safe)
-  const whereClause: any = { workspaceId };
+  const whereClause: Prisma.FeedbackWhereInput = { workspaceId };
 
   if (search) {
     whereClause.content = { contains: search };
@@ -187,7 +188,7 @@ export async function POST(request: Request) {
         content,
         channel,
         customerLabel: customerLabel || null,
-        sentiment: sentiment as any,
+        sentiment: sentiment as Sentiment,
         sentimentScore,
         status: "NEW",
         workspaceId: session.user.workspaceId,

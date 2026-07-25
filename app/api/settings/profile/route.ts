@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -16,7 +16,7 @@ export async function PATCH(request: Request) {
   const { name, newPassword } = body;
 
   try {
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (name) updateData.name = name;
     if (newPassword) updateData.passwordHash = newPassword;
 

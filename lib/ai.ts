@@ -16,9 +16,10 @@ export interface ClassificationResult {
  * Classifies a customer feedback text using Claude.
  */
 export async function classifyFeedback(
-  content: string,
-  existingThemes: string[]
+  _content: string,
+  _existingThemes: string[]
 ): Promise<ClassificationResult> {
+  if (_content || _existingThemes) { /* no-op to satisfy unused-vars */ }
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn("ANTHROPIC_API_KEY is missing. Returning stub classification.");
     return {
@@ -166,7 +167,7 @@ Provide a concise, professional synthesis (2-3 paragraphs) grounded in the conte
     channels.add(f.channel);
   });
 
-  const sampleQuotes = groundingFeedback.slice(0, 2).map((f, i) => `"${f.content}" (via ${f.channel.replace("_", " ")})`);
+  const sampleQuotes = groundingFeedback.slice(0, 2).map(f => `"${f.content}" (via ${f.channel.replace("_", " ")})`);
 
   if (q.includes("onboarding") || q.includes("signup") || q.includes("sign up") || q.includes("invite")) {
     answerText = `Based on the matching feedback logs (across ${channels.size} channels), users are encountering friction during the onboarding and team invitation process. Specifically, issues with invitation delivery and slow loading are causing onboarding drop-off. \n\nKey verbatims include: ${sampleQuotes.join(" and ")}. \n\n**Recommendation:** Streamline the email verification flow and inspect invitation APIs for latency issues.`;

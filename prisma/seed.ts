@@ -1,5 +1,5 @@
 // prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Theme } from '@prisma/client';
 import { Channel, Sentiment, Status, Role } from '../types';
 
 const prisma = new PrismaClient();
@@ -51,7 +51,7 @@ async function main() {
 
   // 4. Create Themes
   const themeNames = ['Billing', 'Onboarding', 'UI/UX', 'Performance', 'Feature Request', 'Support'];
-  const createdThemes: Record<string, any> = {};
+  const createdThemes: Record<string, Theme> = {};
   
   for (const name of themeNames) {
     const theme = await prisma.theme.create({
