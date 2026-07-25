@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Plus, X, Loader2, Tag, ArrowRight, MessageSquare, Edit3, Trash2 } from "lucide-react";
@@ -54,11 +54,9 @@ export default function TrendsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchThemes();
-  }, []);
-
-  const fetchThemes = async () => {
+  const fetchThemes = useCallback(async () => {
+    // Defer state updates to avoid synchronous setState inside useEffect
+    await Promise.resolve();
     setIsLoading(true);
     try {
       const res = await fetch("/api/themes");
@@ -71,7 +69,13 @@ export default function TrendsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchThemes();
+    });
+  }, [fetchThemes]);
 
   const handleCreateTheme = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +97,7 @@ export default function TrendsPage() {
         const data = await res.json();
         toast.error(data.error || "Failed to create theme tag");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to communicate with server");
     } finally {
       setIsCreating(false);
@@ -121,7 +125,7 @@ export default function TrendsPage() {
         const data = await res.json();
         toast.error(data.error || "Failed to update theme");
       }
-    } catch (err) {
+    } catch {
       toast.error("Error updating theme on server");
     } finally {
       setIsSaving(false);
@@ -144,7 +148,7 @@ export default function TrendsPage() {
       } else {
         toast.error("Failed to delete theme");
       }
-    } catch (err) {
+    } catch {
       toast.error("Error connecting to server");
     } finally {
       setIsDeleting(false);
@@ -380,7 +384,7 @@ export default function TrendsPage() {
                     ) : (
                       selectedTheme.feedbacks.map((ft) => (
                         <div key={ft.feedback.id} className="rounded-xl border border-white/5 bg-zinc-950/40 p-4 space-y-2">
-                          <p className="text-xs text-zinc-200 leading-relaxed italic">"{ft.feedback.content}"</p>
+                          <p className="text-xs text-zinc-200 leading-relaxed italic">&quot;{ft.feedback.content}&quot;</p>
                           <div className="flex items-center gap-2 pt-1">
                             <span className={`text-[10px] font-mono font-bold border px-2 py-0.5 rounded ${getSentimentColor(ft.feedback.sentiment)}`}>
                               {ft.feedback.sentiment}

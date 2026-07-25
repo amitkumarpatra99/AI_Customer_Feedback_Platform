@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Sentiment, Status } from "@/types";
 
 const prisma = new PrismaClient();
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   // Common filters
-  const baseWhere: any = { workspaceId };
+  const baseWhere: Prisma.FeedbackWhereInput = { workspaceId };
   if (dateFilter) {
     baseWhere.createdAt = { gte: dateFilter };
   }
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const negativeWhere = { ...baseWhere, sentiment: Sentiment.NEGATIVE };
     const negativeFeedbacks = await prisma.feedback.count({ where: negativeWhere });
     
-    const newThisWeekWhere: any = {
+    const newThisWeekWhere: Prisma.FeedbackWhereInput = {
       workspaceId,
       createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
     };
