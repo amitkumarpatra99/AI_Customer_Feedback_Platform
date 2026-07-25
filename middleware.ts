@@ -2,6 +2,7 @@ import { withAuth } from "next-auth/middleware";
 
 export default withAuth(
   function middleware(req) {
+    if (req) { /* no-op to satisfy unused-vars */ }
     // Yahan baad mein hum specific role checks add kar sakte hain
     // Example: if (req.nextUrl.pathname.startsWith("/settings/team") && req.nextauth.token?.role !== "ADMIN") { ... }
   },

@@ -26,34 +26,34 @@ export default function ReportDetailPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const fetchReportDetails = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/reports/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReport(data);
+        } else {
+          setError("Report not found or has been deleted.");
+        }
+      } catch (err) {
+        console.error("Failed to load report detail", err);
+        setError("Failed to fetch report from server.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (id) {
       fetchReportDetails();
     }
   }, [id]);
 
-  const fetchReportDetails = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/reports/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReport(data);
-      } else {
-        setError("Report not found or has been deleted.");
-      }
-    } catch (err) {
-      console.error("Failed to load report detail", err);
-      setError("Failed to fetch report from server.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const getStats = (contentJson: string) => {
     try {
       const parsed = JSON.parse(contentJson);
       return parsed.stats || { totalItems: 0, positive: 0, neutral: 0, negative: 0 };
-    } catch (e) {
+    } catch {
       return { totalItems: 0, positive: 0, neutral: 0, negative: 0 };
     }
   };
@@ -62,7 +62,7 @@ export default function ReportDetailPage() {
     try {
       const parsed = JSON.parse(contentJson);
       return parsed.narrative || "";
-    } catch (e) {
+    } catch {
       return "";
     }
   };
