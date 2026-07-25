@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line 
@@ -22,7 +22,8 @@ export default function DashboardPage() {
   const [timePeriod, setTimePeriod] = useState("30");
   const [channel, setChannel] = useState("ALL");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    await Promise.resolve();
     try {
       const res = await fetch(`/api/dashboard/stats?days=${timePeriod}&channel=${channel}`);
       if (res.ok) {
@@ -34,11 +35,13 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [timePeriod, channel]);
 
   useEffect(() => {
-    fetchData();
-  }, [timePeriod, channel]);
+    Promise.resolve().then(() => {
+      fetchData();
+    });
+  }, [fetchData]);
 
   if (isLoading) {
     return (
