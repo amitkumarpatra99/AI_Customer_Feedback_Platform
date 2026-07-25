@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const isNegative = lowerQuery.includes("negative") || lowerQuery.includes("bad") || lowerQuery.includes("complaint");
     const isPositive = lowerQuery.includes("positive") || lowerQuery.includes("good") || lowerQuery.includes("love");
     
-    let sentimentFilter: any = undefined;
+    let sentimentFilter: "NEGATIVE" | "POSITIVE" | undefined = undefined;
     if (isNegative) sentimentFilter = "NEGATIVE";
     else if (isPositive) sentimentFilter = "POSITIVE";
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     const matchedThemes = themeKeywords.filter(keyword => lowerQuery.includes(keyword));
 
     // 2. Database Search
-    const whereClause: any = { workspaceId: session.user.workspaceId };
+    const whereClause: Prisma.FeedbackWhereInput = { workspaceId: session.user.workspaceId };
     
     if (sentimentFilter) {
       whereClause.sentiment = sentimentFilter;
