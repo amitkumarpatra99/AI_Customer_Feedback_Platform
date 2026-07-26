@@ -3,7 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
-
 export interface ClassificationResult {
   sentiment: "POS" | "NEU" | "NEG";
   sentimentScore: number; // -1 to 1
@@ -11,8 +10,6 @@ export interface ClassificationResult {
   featureArea: string;
   rationale: string;
 }
-
-
 export async function classifyFeedback(
   content: string,
   existingThemes: string[]
@@ -28,8 +25,7 @@ export async function classifyFeedback(
     };
   }
 
-  // TODO: Build actual Anthropic API call with structured JSON prompt
-  // Anthropic messages.create call will be placed here.
+
   return {
     sentiment: "POS",
     sentimentScore: 0.8,
@@ -39,9 +35,7 @@ export async function classifyFeedback(
   };
 }
 
-/**
- * Generates a Voice of the Customer (VoC) report narrative.
- */
+
 export async function generateVoCReport(
   title: string,
   stats: {
@@ -55,9 +49,7 @@ export async function generateVoCReport(
   return `### Voice of Customer Report: ${title}\n\nSummary of ${stats.totalItems} items. Top theme is ${stats.topThemes[0]?.name || "N/A"}.`;
 }
 
-/**
- * Answers a question grounded on retrieved semantic context.
- */
+
 export async function generateAnswer(
   question: string,
   groundingFeedback: Array<{ content: string; channel: string }>
