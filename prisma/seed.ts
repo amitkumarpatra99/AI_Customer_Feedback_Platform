@@ -39,13 +39,13 @@ async function main() {
 
   // 3. Create 3 Users
   await prisma.user.create({
-    data: { name: 'Rahul Admin', email: 'admin@acme.com', passwordHash: 'hashed_password_123', role: Role.ADMIN, workspaceId: workspace.id },
+    data: { name: 'AMIT', email: 'amit@acme.com', passwordHash: 'hashed_password_123', role: Role.ADMIN, workspaceId: workspace.id },
   });
   await prisma.user.create({
     data: { name: 'Priya Analyst', email: 'analyst@acme.com', passwordHash: 'hashed_password_123', role: Role.ANALYST, workspaceId: workspace.id },
   });
   await prisma.user.create({
-    data: { name: 'Amit Viewer', email: 'viewer@acme.com', passwordHash: 'hashed_password_123', role: Role.VIEWER, workspaceId: workspace.id },
+    data: { name: 'Rahul Viewer', email: 'viewer@acme.com', passwordHash: 'hashed_password_123', role: Role.VIEWER, workspaceId: workspace.id },
   });
   console.log('✅ Created 3 Users (Admin, Analyst, Viewer)');
 
