@@ -5,7 +5,7 @@
 // import { useRouter } from "next/navigation";
 
 // export default function LoginPage() {
-//   const [email, setEmail] = useState("admin@acme.com");
+//   const [email, setEmail] = useState("amit@acme.com");
 //   const [password, setPassword] = useState("hashed_password_123");
 //   const [error, setError] = useState("");
 //   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +23,7 @@
 //     });
 
 //     if (result?.error) {
-//       setError("Invalid email or password. Try admin@acme.com");
+//       setError("Invalid email or password. Try amit@acme.com");
 //       setIsLoading(false);
 //     } else {
 //       router.push("/dashboard");
@@ -89,7 +89,7 @@
 
 //         <div className="mt-6 rounded-md bg-gray-50 p-4 text-center text-xs text-gray-600 border border-gray-200">
 //           <p className="font-semibold mb-2">Demo Credentials:</p>
-//           <p>👑 Admin: <span className="font-mono text-indigo-600">admin@acme.com</span></p>
+//           <p>👑 Admin: <span className="font-mono text-indigo-600">amit@acme.com</span></p>
 //           <p>📊 Analyst: <span className="font-mono text-indigo-600">analyst@acme.com</span></p>
 //           <p>👁️ Viewer: <span className="font-mono text-indigo-600">viewer@acme.com</span></p>
 //           <p className="mt-1">🔑 Password: <span className="font-mono text-indigo-600">hashed_password_123</span></p>
@@ -111,7 +111,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link"; // 👈 Ye import add kiya hai
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@acme.com");
+  const [email, setEmail] = useState("amit@acme.com");
   const [password, setPassword] = useState("hashed_password_123");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -129,7 +129,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password. Try admin@acme.com");
+      setError("Invalid email or password. Try amit@acme.com");
       setIsLoading(false);
     } else {
       router.push("/dashboard");
@@ -179,7 +179,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass-input block w-full rounded-xl px-4 py-2.5 text-sm"
-                placeholder="admin@acme.com"
+                placeholder="amit@acme.com"
               />
             </div>
 
@@ -212,7 +212,7 @@ export default function LoginPage() {
         <div className="glass-card rounded-xl p-4 text-center text-xs text-zinc-400 space-y-1.5">
           <p className="font-semibold text-zinc-200 tracking-wide">Demo Quick Login Credentials:</p>
           <div className="pt-1 text-zinc-400 space-y-1 font-mono text-[11px]">
-            <p>👑 Admin: <span className="text-blue-400 font-semibold">admin@acme.com</span></p>
+            <p>👑 Admin: <span className="text-blue-400 font-semibold">amit@acme.com</span></p>
             <p>📊 Analyst: <span className="text-blue-400 font-semibold">analyst@acme.com</span></p>
             <p>👁️ Viewer: <span className="text-blue-400 font-semibold">viewer@acme.com</span></p>
             <p className="pt-1 text-zinc-500">🔑 Password: <span className="text-indigo-300">hashed_password_123</span></p>

@@ -93,7 +93,7 @@ The report should include:
     : "leaning negative, driven by critical product issues and billing friction";
 
   return `## Executive Summary
-Rahul and Priya's VoC analysis for the selected period shows a total of **${stats.totalItems} customer feedback items** processed. Overall sentiment is ${sentimentSummary}.
+AMIT and Priya's VoC analysis for the selected period shows a total of **${stats.totalItems} customer feedback items** processed. Overall sentiment is ${sentimentSummary}.
 
 ## Key Stats & Sentiment Breakdown
 - **Positive Sentiment**: ${stats.sentimentBreakdown.positive} items
