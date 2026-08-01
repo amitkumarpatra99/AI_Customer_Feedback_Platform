@@ -1,4 +1,5 @@
 # 🔄 Project LOOP | AI Customer Feedback Intelligence Platform
+# 🚀 Project LOOP | AI Customer Feedback Intelligence Platform 
 
 Project LOOP is a modern, multi-tenant B2B SaaS application designed to help companies collect, analyze, and act on customer feedback using AI-powered insights. It transforms raw, unstructured feedback from various channels (such as support tickets, app store reviews, NPS surveys, and sales calls) into actionable intelligence.
 
