@@ -29,7 +29,7 @@ export default function ProfileSettingsPage() {
       } else {
         toast.error("Failed to update profile.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Network error. Please try again.");
     } finally {
       setIsLoading(false);

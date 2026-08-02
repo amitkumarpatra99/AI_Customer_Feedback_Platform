@@ -42,7 +42,7 @@ export default function SignupPage() {
         // Success! Redirect to login page with a success message
         router.push("/login?success=Account created successfully. Please login.");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please check your connection.");
       setIsLoading(false);
     }

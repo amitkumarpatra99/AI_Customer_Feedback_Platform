@@ -1,4 +1,6 @@
 
+
+
 "use client";
 
 import { useState } from "react";
@@ -7,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link"; // 👈 Ye import add kiya hai
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@acme.com");
+  const [email, setEmail] = useState("amit@acme.com");
   const [password, setPassword] = useState("hashed_password_123");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +27,7 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password. Try admin@acme.com");
+      setError("Invalid email or password. Try amit@acme.com");
       setIsLoading(false);
     } else {
       router.push("/dashboard");
@@ -48,7 +50,7 @@ export default function LoginPage() {
             Welcome to <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">LOOP AI</span>
           </h2>
           <p className="text-sm text-zinc-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-4 decoration-blue-500/30">
               Sign up here
             </Link>
@@ -75,7 +77,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass-input block w-full rounded-xl px-4 py-2.5 text-sm"
-                placeholder="admin@acme.com"
+                placeholder="amit@acme.com"
               />
             </div>
 
@@ -108,7 +110,7 @@ export default function LoginPage() {
         <div className="glass-card rounded-xl p-4 text-center text-xs text-zinc-400 space-y-1.5">
           <p className="font-semibold text-zinc-200 tracking-wide">Demo Quick Login Credentials:</p>
           <div className="pt-1 text-zinc-400 space-y-1 font-mono text-[11px]">
-            <p>👑 Admin: <span className="text-blue-400 font-semibold">admin@acme.com</span></p>
+            <p>👑 Admin: <span className="text-blue-400 font-semibold">amit@acme.com</span></p>
             <p>📊 Analyst: <span className="text-blue-400 font-semibold">analyst@acme.com</span></p>
             <p>👁️ Viewer: <span className="text-blue-400 font-semibold">viewer@acme.com</span></p>
             <p className="pt-1 text-zinc-500">🔑 Password: <span className="text-indigo-300">hashed_password_123</span></p>

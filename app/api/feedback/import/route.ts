@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient, Sentiment, Channel, Status } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { Sentiment, Channel, Status } from "@/types";
 import Papa from "papaparse";
 
 const prisma = new PrismaClient();
@@ -31,14 +32,12 @@ export async function POST(request: Request) {
       skipEmptyLines: true 
     });
     
-    const rows = parsed.data as any[];
+    const rows = parsed.data as Record<string, string>[];
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "CSV file is empty" }, { status: 400 });
     }
 
-    // Valid Prisma Enum channels
-    const validChannels = ["SUPPORT_TICKET", "APP_STORE", "NPS_SURVEY", "SALES_CALL", "COMMUNITY", "OTHER"];
 
     // 3. Har row ko process karo aur AI sentiment lagao
     const feedbacksToCreate = rows.map(row => {
