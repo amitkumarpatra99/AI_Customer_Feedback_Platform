@@ -11,7 +11,6 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   const body = await request.json();
   const { query } = body;
 

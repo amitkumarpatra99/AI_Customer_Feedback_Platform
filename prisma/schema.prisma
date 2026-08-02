@@ -1,5 +1,4 @@
-// prisma/schema.prisma
-// Project LOOP - AI Customer Feedback Intelligence Platform
+
 
 generator client {
   provider = "prisma-client-js"
@@ -164,9 +163,6 @@ model FeedbackTheme {
 //   @@map("embeddings")
 // }
 
-// ============================================
-// REPORT (Voice-of-Customer reports)
-// ============================================
 model Report {
   id          String   @id @default(cuid())
   title       String
