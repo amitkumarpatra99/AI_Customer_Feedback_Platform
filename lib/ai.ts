@@ -3,10 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
-<<<<<<< HEAD
-=======
 //  ANTHROPIC AI WITH LOOTS OF FUN AND ENTERTAIMENT FOR ALL
->>>>>>> origin/main
 export interface ClassificationResult {
   sentiment: "POS" | "NEU" | "NEG";
   sentimentScore: number; // -1 to 1
