@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -56,8 +57,14 @@ export default function SignupPage() {
 
       <div className="glass-panel relative z-10 w-full max-w-md space-y-8 rounded-2xl p-8 shadow-2xl backdrop-blur-2xl">
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-[0_0_25px_rgba(59,130,246,0.5)] text-xl text-white font-bold mb-2">
-            🔄
+          <div className="inline-flex mb-2">
+            <Image
+              src="/logo.png"
+              alt="Project LOOP Logo"
+              width={48}
+              height={48}
+              className="rounded-xl object-cover shadow-[0_0_25px_rgba(59,130,246,0.3)]"
+            />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">
             Create a new <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">Workspace</span>
