@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
   return (
@@ -14,9 +15,13 @@ export default function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 h-20 flex items-center justify-between px-8 border-b border-white/10 bg-zinc-950/50 backdrop-blur-xl">
         <span className="text-xl font-bold tracking-wider text-white flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black text-base shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-            🔄
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Project LOOP Logo"
+            width={36}
+            height={36}
+            className="rounded-xl object-cover shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+          />
           Project <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">LOOP</span>
         </span>
         <div className="flex gap-4">
