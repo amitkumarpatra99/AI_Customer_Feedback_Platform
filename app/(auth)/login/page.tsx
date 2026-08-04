@@ -6,7 +6,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // 👈 Ye import add kiya hai
+import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("amit@acme.com");
@@ -43,8 +44,14 @@ export default function LoginPage() {
 
       <div className="glass-panel relative z-10 w-full max-w-md space-y-8 rounded-2xl p-8 shadow-2xl backdrop-blur-2xl">
         <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-[0_0_25px_rgba(59,130,246,0.5)] text-xl text-white font-bold mb-2">
-            🔄
+          <div className="inline-flex mb-2">
+            <Image
+              src="/logo.png"
+              alt="Project LOOP Logo"
+              width={48}
+              height={48}
+              className="rounded-xl object-cover shadow-[0_0_25px_rgba(59,130,246,0.3)]"
+            />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">
             Welcome to <span className="bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">LOOP AI</span>

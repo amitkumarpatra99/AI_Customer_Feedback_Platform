@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import { 
   LayoutDashboard, 
   Inbox, 
@@ -60,7 +61,14 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
         }`}
       >
         {/* Logo / Brand */}
-        <div className="flex h-16 items-center border-b border-zinc-800 px-6 flex-shrink-0">
+        <div className="flex h-16 items-center border-b border-zinc-800 px-6 flex-shrink-0 gap-2.5">
+          <Image
+            src="/logo.png"
+            alt="Project LOOP Logo"
+            width={32}
+            height={32}
+            className="rounded-lg object-cover"
+          />
           <h1 className="text-xl font-bold text-white tracking-tight">
             LOOP <span className="text-blue-500">AI</span>
           </h1>
