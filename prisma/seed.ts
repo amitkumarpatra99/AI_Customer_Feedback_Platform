@@ -1,6 +1,7 @@
 // prisma/seed.ts
 import { PrismaClient, Theme } from '@prisma/client';
 import { Channel, Sentiment, Status, Role } from '../types';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,8 @@ const statuses: Status[] = [Status.NEW, Status.REVIEWED, Status.ACTIONED];
 async function main() {
   console.log('🌱 Starting seed process...');
 
+  const hashedPassword = await bcrypt.hash('hashed_password_123', 10);
+
   // 1. Clean existing data
   await prisma.feedbackTheme.deleteMany();
   await prisma.feedback.deleteMany();
@@ -37,17 +40,18 @@ async function main() {
   });
   console.log(`✅ Created Workspace: ${workspace.name}`);
 
-  // 3. Create 3 Users
+  // 3. Create 3 Users with hashed password
   await prisma.user.create({
-    data: { name: 'AMIT', email: 'amit@acme.com', passwordHash: 'hashed_password_123', role: Role.ADMIN, workspaceId: workspace.id },
+    data: { name: 'AMIT', email: 'amit@acme.com', passwordHash: hashedPassword, role: Role.ADMIN, workspaceId: workspace.id },
   });
   await prisma.user.create({
-    data: { name: 'Priya Analyst', email: 'analyst@acme.com', passwordHash: 'hashed_password_123', role: Role.ANALYST, workspaceId: workspace.id },
+    data: { name: 'Priya Analyst', email: 'analyst@acme.com', passwordHash: hashedPassword, role: Role.ANALYST, workspaceId: workspace.id },
   });
   await prisma.user.create({
-    data: { name: 'Rahul Viewer', email: 'viewer@acme.com', passwordHash: 'hashed_password_123', role: Role.VIEWER, workspaceId: workspace.id },
+    data: { name: 'Rahul Viewer', email: 'viewer@acme.com', passwordHash: hashedPassword, role: Role.VIEWER, workspaceId: workspace.id },
   });
   console.log('✅ Created 3 Users (Admin, Analyst, Viewer)');
+
 
   // 4. Create Themes
   const themeNames = ['Billing', 'Onboarding', 'UI/UX', 'Performance', 'Feature Request', 'Support'];
