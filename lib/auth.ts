@@ -1,8 +1,12 @@
-import NextAuth, { NextAuthOptions, getServerSession } from "next-auth";
+import { NextAuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/db";
+import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
+// Set NEXTAUTH_URL fallback in production if not set (for Vercel compatibility)
+if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -22,8 +26,8 @@ export const authOptions: NextAuthOptions = {
           include: { workspace: true },
         });
 
-        // ✅ FIX: Ab ye check karega ki entered password, stored password se match karta hai ya nahi
-        if (user && user.passwordHash === credentials.password) {
+        // Use bcrypt to compare entered password with the stored hash
+        if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
           return {
             id: user.id,
             name: user.name,
@@ -34,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        return null; // Agar password match nahi kiya, toh login fail
+        return null;
       },
     }),
   ],
@@ -65,6 +69,4 @@ export const authOptions: NextAuthOptions = {
 
 export async function getSession() {
   return await getServerSession(authOptions);
-}
-
-export const handler = NextAuth(authOptions);
+}

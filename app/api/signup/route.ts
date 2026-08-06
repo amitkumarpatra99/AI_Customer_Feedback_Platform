@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/db";
 import { Role } from "@/types";
-
-const prisma = new PrismaClient();
+import bcrypt from "bcrypt";
 
 export async function POST(request: Request) {
   try {
@@ -25,14 +24,13 @@ export async function POST(request: Request) {
       data: { name: workspaceName },
     });
 
-    // 4. Create User with ADMIN role
-    // Note: For this MVP, we are storing password as plain text/hashed_password_123 logic. 
-    // In production, always use bcrypt to hash passwords.
+    // 4. Create User with ADMIN role and securely hashed password
+    const hashedPassword = await bcrypt.hash(password, 10);
     await prisma.user.create({
       data: {
         name,
         email,
-        passwordHash: "hashed_password_123", // Matching our seed/login logic
+        passwordHash: hashedPassword,
         role: Role.ADMIN,
         workspaceId: workspace.id,
       },
@@ -44,4 +42,4 @@ export async function POST(request: Request) {
     console.error("Signup error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}
