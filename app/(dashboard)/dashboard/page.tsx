@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line 
@@ -19,28 +20,40 @@ const COLORS = { POSITIVE: "#22c55e", NEUTRAL: "#a1a1aa", NEGATIVE: "#ef4444" };
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState("30");
   const [channel, setChannel] = useState("ALL");
 
-  const fetchData = useCallback(async () => {
-    await Promise.resolve();
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/dashboard/stats?days=${timePeriod}&channel=${channel}`);
-      if (res.ok) {
-        const jsonData = await res.json();
-        setData(jsonData);
+      const res = await fetch(
+        `/api/dashboard/stats?days=${timePeriod}&channel=${channel}`,
+        { signal },
+      );
+      if (!res.ok) {
+        throw new Error("Unable to load analytics.");
       }
+      const jsonData: DashboardData = await res.json();
+      setData(jsonData);
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       console.error("Failed to fetch dashboard data", error);
+      setError("We couldn’t load analytics right now. Please try again.");
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [timePeriod, channel]);
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchData();
-    });
+    const controller = new AbortController();
+    void fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
   if (isLoading) {
@@ -52,7 +65,23 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) return <div className="text-red-500">Failed to load data.</div>;
+  if (!data && error) {
+    return (
+      <div role="alert" className="glass-panel mx-auto max-w-xl rounded-2xl p-8 text-center">
+        <p className="text-lg font-semibold text-white">Analytics unavailable</p>
+        <p className="mt-2 text-sm text-zinc-400">{error}</p>
+        <button
+          type="button"
+          onClick={() => void fetchData()}
+          className="glass-button mt-5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="space-y-8">
@@ -67,10 +96,7 @@ export default function DashboardPage() {
             <select
               aria-label="Filter by time period"
               value={timePeriod}
-              onChange={(e) => {
-                setIsLoading(true);
-                setTimePeriod(e.target.value);
-              }}
+              onChange={(e) => setTimePeriod(e.target.value)}
               className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
             >
               <option value="7" className="bg-zinc-900">Last 7 Days</option>
@@ -84,10 +110,7 @@ export default function DashboardPage() {
             <select
               aria-label="Filter by feedback channel"
               value={channel}
-              onChange={(e) => {
-                setIsLoading(true);
-                setChannel(e.target.value);
-              }}
+              onChange={(e) => setChannel(e.target.value)}
               className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
             >
               <option value="ALL" className="bg-zinc-900">All Channels</option>
@@ -131,17 +154,36 @@ export default function DashboardPage() {
         />
       </div>
 
+      {data.stats.totalFeedbacks === 0 && (
+        <div className="glass-panel flex flex-col gap-4 rounded-2xl p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-white">Your feedback insights start here</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              No feedback matches these filters. Add feedback or choose a different channel or period.
+            </p>
+          </div>
+          <Link
+            href="/inbox"
+            className="glass-button inline-flex shrink-0 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Open feedback inbox
+          </Link>
+        </div>
+      )}
+
       {/* 2. Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         
         {/* Volume Over Time Chart */}
         <div className="glass-card rounded-2xl p-6 relative overflow-hidden">
-          <h3 className="mb-4 text-sm font-bold text-zinc-200 tracking-wide">Feedback Volume (Last 30 Days)</h3>
+          <h3 className="mb-4 text-sm font-bold text-zinc-200 tracking-wide">
+            Feedback Volume ({timePeriod === "ALL" ? "Last 30 Days" : `Last ${timePeriod} Days`})
+          </h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.volume}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="date" stroke="#a1a1aa" fontSize={12} tickLine={false} />
+                <XAxis dataKey="date" stroke="#a1a1aa" fontSize={12} tickLine={false} interval="preserveStartEnd" />
                 <YAxis stroke="#a1a1aa" fontSize={12} tickLine={false} />
                 <Tooltip 
                   contentStyle={{ 
