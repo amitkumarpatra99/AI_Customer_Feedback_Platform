@@ -25,8 +25,6 @@ export default function DashboardPage() {
   const [channel, setChannel] = useState("ALL");
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
-    setIsLoading(true);
-    setError(null);
     try {
       const res = await fetch(
         `/api/dashboard/stats?days=${timePeriod}&channel=${channel}`,
@@ -72,7 +70,11 @@ export default function DashboardPage() {
         <p className="mt-2 text-sm text-zinc-400">{error}</p>
         <button
           type="button"
-          onClick={() => void fetchData()}
+          onClick={() => {
+            setIsLoading(true);
+            setError(null);
+            void fetchData();
+          }}
           className="glass-button mt-5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
         >
           Try again
@@ -85,6 +87,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div role="alert" className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Analytics Dashboard</h1>
@@ -96,7 +103,11 @@ export default function DashboardPage() {
             <select
               aria-label="Filter by time period"
               value={timePeriod}
-              onChange={(e) => setTimePeriod(e.target.value)}
+              onChange={(e) => {
+                setError(null);
+                setIsLoading(true);
+                setTimePeriod(e.target.value);
+              }}
               className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
             >
               <option value="7" className="bg-zinc-900">Last 7 Days</option>
@@ -110,7 +121,11 @@ export default function DashboardPage() {
             <select
               aria-label="Filter by feedback channel"
               value={channel}
-              onChange={(e) => setChannel(e.target.value)}
+              onChange={(e) => {
+                setError(null);
+                setIsLoading(true);
+                setChannel(e.target.value);
+              }}
               className="glass-input rounded-xl px-4 py-2.5 text-xs font-semibold"
             >
               <option value="ALL" className="bg-zinc-900">All Channels</option>
