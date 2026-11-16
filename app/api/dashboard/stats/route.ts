@@ -3,130 +3,136 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
-import { Sentiment, Status } from "@/types";
+import { Channel, Sentiment, Status } from "@/types";
 
+const allowedPeriods = ["7", "30", "90", "ALL"] as const;
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  
+
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const daysParam = searchParams.get("days"); // "7", "30", "90", "ALL"
-  const channel = searchParams.get("channel") || "ALL";
+  const daysParam = searchParams.get("days") ?? "30";
+  const channel = searchParams.get("channel") ?? "ALL";
 
-  const workspaceId = session.user.workspaceId;
-
-  // Calculate dynamic date filter
-  let dateFilter: Date | null = null;
-  if (daysParam && daysParam !== "ALL") {
-    const days = parseInt(daysParam);
-    if (!isNaN(days)) {
-      dateFilter = new Date();
-      dateFilter.setDate(dateFilter.getDate() - days);
-    }
-  } else if (!daysParam) {
-    // Default to last 30 days if not specified (legacy behavior)
-    dateFilter = new Date();
-    dateFilter.setDate(dateFilter.getDate() - 30);
+  if (
+    !allowedPeriods.includes(daysParam as (typeof allowedPeriods)[number]) ||
+    (channel !== "ALL" && !Object.values(Channel).includes(channel as Channel))
+  ) {
+    return NextResponse.json({ error: "Invalid dashboard filters" }, { status: 400 });
   }
 
-  // Common filters
+  const workspaceId = session.user.workspaceId;
+  const days = daysParam === "ALL" ? null : Number(daysParam);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const dateFilter = days
+    ? new Date(today.getTime() - (days - 1) * 24 * 60 * 60 * 1000)
+    : null;
+  const volumeStart = dateFilter ?? new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
+
   const baseWhere: Prisma.FeedbackWhereInput = { workspaceId };
   if (dateFilter) {
     baseWhere.createdAt = { gte: dateFilter };
   }
-  if (channel && channel !== "ALL") {
+  if (channel !== "ALL") {
     baseWhere.channel = channel;
   }
 
+  const newThisWeekWhere: Prisma.FeedbackWhereInput = {
+    workspaceId,
+    createdAt: { gte: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000) },
+  };
+  if (channel !== "ALL") {
+    newThisWeekWhere.channel = channel;
+  }
+
   try {
-    // 1. Basic Stats
-    const totalFeedbacks = await prisma.feedback.count({ where: baseWhere });
-    
-    const negativeWhere = { ...baseWhere, sentiment: Sentiment.NEGATIVE };
-    const negativeFeedbacks = await prisma.feedback.count({ where: negativeWhere });
-    
-    const newThisWeekWhere: Prisma.FeedbackWhereInput = {
-      workspaceId,
-      createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-    };
-    if (channel && channel !== "ALL") {
-      newThisWeekWhere.channel = channel;
-    }
-    const newThisWeek = await prisma.feedback.count({ where: newThisWeekWhere });
-    
-    const actionedWhere = { ...baseWhere, status: Status.ACTIONED };
-    const actionedFeedbacks = await prisma.feedback.count({ where: actionedWhere });
-    const actionRate = totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
+    const [
+      totalFeedbacks,
+      negativeFeedbacks,
+      newThisWeek,
+      actionedFeedbacks,
+      sentimentData,
+      volumeRecords,
+      themeCounts,
+    ] = await Promise.all([
+      prisma.feedback.count({ where: baseWhere }),
+      prisma.feedback.count({ where: { ...baseWhere, sentiment: Sentiment.NEGATIVE } }),
+      prisma.feedback.count({ where: newThisWeekWhere }),
+      prisma.feedback.count({ where: { ...baseWhere, status: Status.ACTIONED } }),
+      prisma.feedback.groupBy({
+        by: ["sentiment"],
+        where: baseWhere,
+        _count: { sentiment: true },
+      }),
+      prisma.feedback.findMany({
+        where: {
+          ...baseWhere,
+          createdAt: { gte: volumeStart },
+        },
+        select: { createdAt: true },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.feedbackTheme.groupBy({
+        by: ["themeId"],
+        where: { feedback: { is: baseWhere } },
+        _count: { _all: true },
+      }),
+    ]);
 
-    // 2. Sentiment Breakdown
-    const sentimentData = await prisma.feedback.groupBy({
-      by: ["sentiment"],
-      where: baseWhere,
-      _count: { sentiment: true }
-    });
+    const actionRate =
+      totalFeedbacks > 0 ? Math.round((actionedFeedbacks / totalFeedbacks) * 100) : 0;
 
-    // 3. Volume Over Time
-    const recentFeedbacks = await prisma.feedback.findMany({
-      where: baseWhere,
-      select: { createdAt: true },
-      orderBy: { createdAt: "asc" }
-    });
-
-    // Group by date for chart
-    const volumeByDate = recentFeedbacks.reduce((acc: Record<string, number>, curr) => {
-      const date = curr.createdAt.toISOString().split("T")[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
+    const volumeByDate = volumeRecords.reduce((counts: Record<string, number>, feedback) => {
+      const date = feedback.createdAt.toISOString().slice(0, 10);
+      counts[date] = (counts[date] ?? 0) + 1;
+      return counts;
     }, {});
 
-    const volumeChartData = Object.entries(volumeByDate).map(([date, count]) => ({
-      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      count
-    }));
+    const volumeChartData = [];
+    for (let date = new Date(volumeStart); date <= today; date.setUTCDate(date.getUTCDate() + 1)) {
+      const dateKey = date.toISOString().slice(0, 10);
+      volumeChartData.push({
+        date: new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }).format(date),
+        count: volumeByDate[dateKey] ?? 0,
+      });
+    }
 
-    // 4. Top Themes (Filtered dynamically by date & channel)
-    const themeData = await prisma.theme.findMany({
-      where: { workspaceId },
-      include: {
-        feedbacks: {
-          include: {
-            feedback: true
-          }
-        }
-      }
+    const topThemeCounts = themeCounts
+      .sort((a, b) => b._count._all - a._count._all)
+      .slice(0, 5);
+    const themes = await prisma.theme.findMany({
+      where: {
+        workspaceId,
+        id: { in: topThemeCounts.map((theme) => theme.themeId) },
+      },
+      select: { id: true, name: true, color: true },
+    });
+    const themesById = new Map(themes.map((theme) => [theme.id, theme]));
+    const topThemes = topThemeCounts.flatMap(({ themeId, _count }) => {
+      const theme = themesById.get(themeId);
+      return theme ? [{ name: theme.name, count: _count._all, color: theme.color }] : [];
     });
 
-    const topThemes = themeData.map(t => {
-      const filteredFeedbacks = t.feedbacks.filter(ft => {
-        if (!ft.feedback) return false;
-        const matchesDate = dateFilter ? ft.feedback.createdAt >= dateFilter : true;
-        const matchesChannel = (channel && channel !== "ALL") ? ft.feedback.channel === channel : true;
-        return matchesDate && matchesChannel;
-      });
-      return {
-        name: t.name,
-        count: filteredFeedbacks.length,
-        color: t.color
-      };
-    })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-    // Format sentiment data to include missing types if zero
     const sentimentResponse = [
-      { name: "POSITIVE", value: 0 },
-      { name: "NEUTRAL", value: 0 },
-      { name: "NEGATIVE", value: 0 }
+      { name: Sentiment.POSITIVE, value: 0 },
+      { name: Sentiment.NEUTRAL, value: 0 },
+      { name: Sentiment.NEGATIVE, value: 0 },
     ];
 
-    sentimentData.forEach(s => {
-      const idx = sentimentResponse.findIndex(r => r.name === s.sentiment);
-      if (idx !== -1) {
-        sentimentResponse[idx].value = s._count.sentiment;
+    sentimentData.forEach(({ sentiment, _count }) => {
+      const entry = sentimentResponse.find((item) => item.name === sentiment);
+      if (entry) {
+        entry.value = _count.sentiment;
       }
     });
 
@@ -134,9 +140,8 @@ export async function GET(request: Request) {
       stats: { totalFeedbacks, negativeFeedbacks, newThisWeek, actionRate },
       sentiment: sentimentResponse,
       volume: volumeChartData,
-      themes: topThemes
+      themes: topThemes,
     });
-
   } catch (error) {
     console.error("Dashboard stats error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
