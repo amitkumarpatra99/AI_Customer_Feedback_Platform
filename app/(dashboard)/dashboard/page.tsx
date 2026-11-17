@@ -50,7 +50,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetchData(controller.signal);
+    Promise.resolve().then(() => {
+      if (!controller.signal.aborted) {
+        void fetchData(controller.signal);
+      }
+    });
     return () => controller.abort();
   }, [fetchData]);
 
