@@ -29,7 +29,7 @@ graph TD
     end
 
     %% Database Storage
-    subgraph Storage ["3. Data Storage (SQLite + Prisma)"]
+    subgraph Storage ["3. Data Storage (PostgreSQL + Prisma)"]
         C1[(Workspace DB)]
         C2[Workspace-isolated Transactions]
     end
@@ -72,13 +72,22 @@ graph TD
 | **Framework** | Next.js 16 (App Router) | React Server Components, Client components, and API routes. |
 | **Language** | TypeScript | Type safety across API endpoints and client components. |
 | **Styling** | Tailwind CSS v4 & PostCSS | Premium dark-themed, glassmorphic layout. |
-| **Database** | SQLite | Fast local file-based database. |
+| **Database** | PostgreSQL | Relational storage configured through Prisma. |
 | **ORM** | Prisma | Schema migration, query generation, and seeding. |
 | **Authentication** | NextAuth.js (v4) | Credentials provider authentication flow. |
 | **AI SDK** | `@anthropic-ai/sdk` | Integration with Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`) for report generation and chat Q&A. |
 | **Data Tools** | PapaParse | Client-side CSV parser for data ingestion. |
 | **Visualization** | Recharts | Interactive and animated chart components. |
 | **Notifications** | Sonner | Real-time elegant toast messages. |
+
+### Authentication
+
+- Sign-in uses NextAuth.js Credentials with an email and password.
+- Passwords are verified against bcrypt hashes stored in the `User` table; plaintext passwords are not stored.
+- Sessions use JWTs. The JWT and session include the user's ID, role, workspace ID, and workspace name.
+- The custom sign-in page is `/login`. Middleware protects dashboard pages, and API routes check the active session and workspace.
+- New registrations create a workspace and its first user with the `ADMIN` role.
+- Configure `NEXTAUTH_SECRET` and `NEXTAUTH_URL` before running the app. In production, `NEXTAUTH_URL` can be inferred from `VERCEL_URL` when deployed to Vercel.
 
 ---
 
@@ -109,7 +118,7 @@ graph TD
 ├── prisma/                   # Database files
 │   ├── schema.prisma         # Prisma database schema definition
 │   ├── seed.ts               # Local seeding script with demo workspace & feedback data
-│   └── dev.db                # SQLite database file
+│   └── migrations/           # PostgreSQL Prisma migrations
 ├── types/                    # Core TypeScript custom interfaces and enums
 └── middleware.ts             # Route protection middleware for secured dashboard paths
 ```
@@ -118,7 +127,7 @@ graph TD
 
 ## 🗄️ Database Schema & Relationships
 
-The database is built on SQLite. It structures workspaces, users, themes, feedback items, and VoC reports.
+The database is built on PostgreSQL and managed with Prisma. It structures workspaces, users, themes, feedback items, and VoC reports.
 
 ```mermaid
 erDiagram
@@ -149,7 +158,7 @@ erDiagram
 | `id` | `String` | Primary Key, `cuid()` | Unique user identifier. |
 | `name` | `String` | - | Full name of the user. |
 | `email` | `String` | Unique index | Login credential email. |
-| `passwordHash`| `String` | - | Clear text or hashed credential store. |
+| `passwordHash`| `String` | - | Bcrypt password hash; raw passwords are not stored. |
 | `role` | `String` | Default `"VIEWER"` | Access permissions role: `ADMIN`, `ANALYST`, or `VIEWER`. |
 | `workspaceId` | `String` | Foreign Key -> `Workspace` | Tenant organization pointer. |
 | `createdAt` | `DateTime` | Default `now()` | Registration timestamp. |
@@ -211,7 +220,7 @@ All routes require a valid active session via NextAuth session tokens (enforced 
 
 | Method | Endpoint | Description | Expected Payload (JSON) | Access Role |
 | :--- | :--- | :--- | :--- | :--- |
-| **POST** | `/api/signup` | Creates a new tenant workspace and admin user. | `{ name, email, password, companyName }` | Public |
+| **POST** | `/api/signup` | Creates a new tenant workspace and admin user. | `{ name, email, password, workspaceName }` | Public |
 | **GET** | `/api/feedback` | Fetches filtered, paginated feedback list. | *Query Parameters (status, sentiment, search, page)* | All roles |
 | **POST** | `/api/feedback` | Manually submits a feedback log and classifies it. | `{ content, channel, sourceRef, customerLabel }` | Admin / Analyst |
 | **POST** | `/api/feedback/bulk` | Deletes or updates statuses/themes of multiple items. | `{ ids: String[], action: "delete" \| "status", value?: String }` | Admin / Analyst |
@@ -235,6 +244,7 @@ Follow these instructions to run the application on your local machine:
 ### 📋 Prerequisites
 - **Node.js** (v18+ recommended)
 - **npm** (v9+ recommended)
+- **PostgreSQL** database
 - **Anthropic Claude API Key** (optional - fallback local summaries will be generated if not provided)
 
 ### 🚀 Step-by-Step Installation
@@ -251,18 +261,22 @@ Follow these instructions to run the application on your local machine:
    ```
 
 3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and fill in the values:
-   ```bash
-   cp .env.example .env
+   Create a `.env` file in the project root and set your PostgreSQL connection string and NextAuth values:
+   ```env
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+   ANTHROPIC_API_KEY="your-anthropic-api-key"
    ```
-   *Note: For local development, the default database URL is already set to `file:./dev.db` which is SQLite compatible.*
+   `ANTHROPIC_API_KEY` is optional; the app uses local fallback logic when it is not configured. Set a strong, private `NEXTAUTH_SECRET` for each environment.
 
 4. **Initialize Database and Seed Demo Data**:
-   Ensure you run the Prisma migrations and seed the SQLite database with 125 feedback variations, themes, and test credentials:
+   Apply the PostgreSQL migrations and seed 125 feedback variations, themes, and test accounts:
    ```bash
-   npx prisma migrate dev --name init
+   npx prisma migrate dev
    npx prisma db seed
    ```
+   **Warning:** The seed script clears existing feedback, themes, users, and workspaces in the database before creating demo data. Use it only with a development database.
 
 5. **Start the Development Server**:
    ```bash
@@ -272,7 +286,7 @@ Follow these instructions to run the application on your local machine:
 
 ---
 
-## 🔑 Seeding & Default Credentials
+## 🔑 Demo Credentials
 
 For testing purposes, the seed script (`prisma/seed.ts`) populates the database with a default workspace named **"Acme Corp Demo"** and three users. You can sign in using any of the following credentials:
 
